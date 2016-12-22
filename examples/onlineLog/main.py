@@ -2,23 +2,11 @@ import time
 import machine
 from onewire import DS18X20
 from onewire import OneWire
-from network import WLAN
+
 import usocket as socket
 
-wifi_ssid = 'YOURWIFISSID'
-wifi_pass = 'YOURWIFIPASSWORD'
 publicKey = 'SPARKFUNCHANNELPUBLICKEY'
 privateKey = 'SPARKFUNCAHNNELPRIVATEKEY'
-
-
-wlan = WLAN(mode=WLAN.STA)
-wlan.antenna(WLAN.EXT_ANT)
-wlan.connect(wifi_ssid, auth=(WLAN.WPA2, wifi_pass), timeout=5000)
-
-while not wlan.isconnected(): 
-     machine.idle()
-
-print("Connected to Wifi\n")
 
 
 #DS18B20 data line connected to pin P10
