@@ -174,7 +174,7 @@ class DS18X20(object):
         Pass the 8-byte bytes object with the ROM of the specific device you want to read.
         If only one DS18x20 device is attached to the bus you may omit the rom parameter.
         """
-        if (rom==None) and (self.length>0):
+        if (rom==None) and (len(self.roms)>0):
             rom=self.roms[0]
         if rom!=None:    
             rom = rom or self.roms[0]
@@ -190,7 +190,7 @@ class DS18X20(object):
         """
         if self.isbusy():
             return None
-        if (rom==None) and (self.length>0):
+        if (rom==None) and (len(self.roms)>0):
             rom=self.roms[0]
         if rom==None:     
             return None
