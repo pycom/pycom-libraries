@@ -174,11 +174,14 @@ class DS18X20(object):
         Pass the 8-byte bytes object with the ROM of the specific device you want to read.
         If only one DS18x20 device is attached to the bus you may omit the rom parameter.
         """
-        rom = rom or self.roms[0]
-        ow = self.ow
-        ow.reset()
-        ow.select_rom(rom)
-        ow.write_byte(0x44)  # Convert Temp
+        if (rom==None) and (self.length>0):
+            rom=self.roms[0]
+        if rom!=None:    
+            rom = rom or self.roms[0]
+            ow = self.ow
+            ow.reset()
+            ow.select_rom(rom)
+            ow.write_byte(0x44)  # Convert Temp
 
     def read_temp_async(self, rom=None):
         """
@@ -187,13 +190,17 @@ class DS18X20(object):
         """
         if self.isbusy():
             return None
-        rom = rom or self.roms[0]
-        ow = self.ow
-        ow.reset()
-        ow.select_rom(rom)
-        ow.write_byte(0xbe)  # Read scratch
-        data = ow.read_bytes(9)
-        return self.convert_temp(rom[0], data)
+        if (rom==None) and (self.length>0):
+            rom=self.roms[0]
+        if rom==None:     
+            return None
+        else:
+            ow = self.ow
+            ow.reset()
+            ow.select_rom(rom)
+            ow.write_byte(0xbe)  # Read scratch
+            data = ow.read_bytes(9)
+            return self.convert_temp(rom[0], data)
 
     def convert_temp(self, rom0, data):
         """
