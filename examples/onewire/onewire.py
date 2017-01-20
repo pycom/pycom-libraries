@@ -160,6 +160,11 @@ class DS18X20(object):
     def __init__(self, onewire):
         self.ow = onewire
         self.roms = [rom for rom in self.ow.scan() if rom[0] == 0x10 or rom[0] == 0x28]
+        self.fp = True
+        try:
+            1/1
+        except TypeError:
+            self.fp = False # floatingpoint not supported
 
     def isbusy(self):
         """
@@ -174,11 +179,14 @@ class DS18X20(object):
         Pass the 8-byte bytes object with the ROM of the specific device you want to read.
         If only one DS18x20 device is attached to the bus you may omit the rom parameter.
         """
-        rom = rom or self.roms[0]
-        ow = self.ow
-        ow.reset()
-        ow.select_rom(rom)
-        ow.write_byte(0x44)  # Convert Temp
+        if (rom==None) and (len(self.roms)>0):
+            rom=self.roms[0]
+        if rom!=None:    
+            rom = rom or self.roms[0]
+            ow = self.ow
+            ow.reset()
+            ow.select_rom(rom)
+            ow.write_byte(0x44)  # Convert Temp
 
     def read_temp_async(self, rom=None):
         """
@@ -187,13 +195,17 @@ class DS18X20(object):
         """
         if self.isbusy():
             return None
-        rom = rom or self.roms[0]
-        ow = self.ow
-        ow.reset()
-        ow.select_rom(rom)
-        ow.write_byte(0xbe)  # Read scratch
-        data = ow.read_bytes(9)
-        return self.convert_temp(rom[0], data)
+        if (rom==None) and (len(self.roms)>0):
+            rom=self.roms[0]
+        if rom==None:     
+            return None
+        else:
+            ow = self.ow
+            ow.reset()
+            ow.select_rom(rom)
+            ow.write_byte(0xbe)  # Read scratch
+            data = ow.read_bytes(9)
+            return self.convert_temp(rom[0], data)
 
     def convert_temp(self, rom0, data):
         """
@@ -210,9 +222,18 @@ class DS18X20(object):
                 temp_read = temp_lsb >> 1  # truncate bit 0 by shifting
             count_remain = data[6]
             count_per_c = data[7]
-            temp = 100 * temp_read - 25 + (count_per_c - count_remain) // count_per_c
-            return temp
+            if self.fp:
+                return temp_read - 25 + (count_per_c - count_remain) / count_per_c
+            else:
+                return 100 * temp_read - 25 + (count_per_c - count_remain) // count_per_c
         elif rom0 == 0x28:
-            return (temp_msb << 8 | temp_lsb) * 100 // 16
+            temp = None
+            if self.fp:
+                temp = (temp_msb << 8 | temp_lsb) / 16
+            else:
+                temp = (temp_msb << 8 | temp_lsb) * 100 // 16
+            if (temp_msb & 0xf8) == 0xf8: # for negative temperature
+                temp -= 0x1000
+            return temp
         else:
             assert False
