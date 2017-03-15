@@ -157,9 +157,15 @@ class OneWire:
         return rom, next_diff
 
 class DS18X20(object):
-    def __init__(self, onewire):
+    def __init__(self, onewire, useFloat=True):
         self.ow = onewire
         self.roms = [rom for rom in self.ow.scan() if rom[0] == 0x10 or rom[0] == 0x28]
+        self.fp = useFloat
+        try:
+            if useFloat:
+                1/1
+        except TypeError:
+            self.fp = False # floatingpoint not supported
 
     def isbusy(self):
         """
