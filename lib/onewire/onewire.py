@@ -157,12 +157,13 @@ class OneWire:
         return rom, next_diff
 
 class DS18X20(object):
-    def __init__(self, onewire):
+    def __init__(self, onewire, useFloatIfSupported=True):
         self.ow = onewire
         self.roms = [rom for rom in self.ow.scan() if rom[0] == 0x10 or rom[0] == 0x28]
-        self.fp = True
+        self.fp = useFloatIfSupported
         try:
-            1/1
+            if useFloatIfSupported:
+                1/1
         except TypeError:
             self.fp = False # floatingpoint not supported
 
@@ -182,7 +183,6 @@ class DS18X20(object):
         if (rom==None) and (len(self.roms)>0):
             rom=self.roms[0]
         if rom!=None:    
-            rom = rom or self.roms[0]
             ow = self.ow
             ow.reset()
             ow.select_rom(rom)
