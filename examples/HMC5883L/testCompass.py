@@ -2,7 +2,7 @@
 import HMC5883L
 import gc
 import time
-m = HMC5883L2.HMC5883L()
+m = HMC5883L.HMC5883L()
 while True:
 	m.readAxes()
 	m.heading()
