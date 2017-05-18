@@ -129,7 +129,7 @@ class NanoGateway:
         return int(sf)
 
     def _sf_to_dr(self, sf):
-        return "SF7BW125"
+        return "SF%dBW125" % sf
 
     def _make_stat_packet(self):
         now = self.rtc.now()
