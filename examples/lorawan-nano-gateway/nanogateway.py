@@ -52,6 +52,7 @@ class NanoGateway:
     def __init__(self, id, frequency, datarate, ssid, password, server, port, ntp='pool.ntp.org', ntp_period=3600):
         self.id = id
         self.frequency = frequency
+        self.datarate = datarate
         self.sf = self._dr_to_sf(datarate)
         self.ssid = ssid
         self.password = password
@@ -129,7 +130,7 @@ class NanoGateway:
         return int(sf)
 
     def _sf_to_dr(self, sf):
-        return "SF7BW125"
+        return self.datarate
 
     def _make_stat_packet(self):
         now = self.rtc.now()
@@ -186,7 +187,7 @@ class NanoGateway:
             self.rxok += 1
             rx_data = self.lora_sock.recv(256)
             stats = lora.stats()
-            self._push_data(self._make_node_packet(rx_data, self.rtc.now(), stats.timestamp, stats.sf, stats.rssi, stats.snr))
+            self._push_data(self._make_node_packet(rx_data, self.rtc.now(), stats.rx_timestamp, stats.sfrx, stats.rssi, stats.snr))
             self.rxfw += 1
         if events & LoRa.TX_PACKET_EVENT:
             self.txnb += 1
