@@ -5,7 +5,7 @@ This repository contains out of the box examples for Pycom devices, including Py
 
 # Table of Contents
 * [Examples](/examples)
-* [Libraries](/libraries)
+* [Libraries](/lib)
 * [Pysense](/pysense)
 * [Pytrack](/pytrack)
 
