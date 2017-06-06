@@ -182,7 +182,6 @@ class DS18X20(object):
         if (rom==None) and (len(self.roms)>0):
             rom=self.roms[0]
         if rom!=None:    
-            rom = rom or self.roms[0]
             ow = self.ow
             ow.reset()
             ow.select_rom(rom)
