@@ -1,6 +1,8 @@
 from machine import Pin
 import time
 
+__version__ = 1.0.0
+
 class Pysense:
 
     I2C_SLAVE_ADDR = const(8)
@@ -142,4 +144,3 @@ class Pysense:
             time.sleep_us(100)
         adc_val = (self.peek_memory(ADRESH_ADDR) << 2) + (self.peek_memory(ADRESL_ADDR) >> 6)
         return (((adc_val * 3.3 * 280) / 1023) / 180) + 0.01    # add 10mV to compensate for the drop in the FET
-
