@@ -5,7 +5,7 @@ import time
 import struct
 import math
 
-__version__ = 1.0.0
+__version__ = '1.0.0'
 
 class Pytrack:
 
