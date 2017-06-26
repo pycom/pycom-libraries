@@ -36,7 +36,7 @@ class L76GNSS:
         alarm.cancel()
         self.timeout_status = False
 
-    def coords(self, debug=False):
+    def coordinates(self, debug=False):
         lat_d, lon_d = None, None
         if self.timeout != None:
             self._alarm = Timer.Alarm(self._gps_timeout, self.timeout, periodic=False)
