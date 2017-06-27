@@ -44,7 +44,7 @@ class L76GNSS:
         while True:
             if self.timeout_status != True:
                 break
-            nmea += self._read()
+            nmea += self._read().lstrip(b'\n\n').rstrip(b'\n\n')
             gngll_idx = nmea.find(b'GNGLL')
             if gngll_idx >= 0:
                 gngll = nmea[gngll_idx:]

@@ -1,11 +1,10 @@
-from machine import I2C
 from machine import Pin
-import machine
 import time
-import struct
-import math
+import pycom
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
+
+EXP_RTC_PERIOD = 7000
 
 class Pytrack:
 
@@ -19,6 +18,7 @@ class Pytrack:
     CMD_PROD_ID = const(0x12)
     CMD_SETUP_SLEEP = const(0x20)
     CMD_GO_SLEEP = const(0x21)
+    CMD_CALIBRATE = const(0x22)
     CMD_BAUD_CHANGE = const(0x30)
     CMD_DFU = const(0x31)
 
@@ -54,22 +54,26 @@ class Pytrack:
     PCON_ADDR = const(0x096)
     STATUS_ADDR = const(0x083)
 
+
     def __init__(self, i2c=None, sda='P22', scl='P21'):
         if i2c is not None:
             self.i2c = i2c
         else:
+            from machine import I2C
             self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
+        self.sda = sda
+        self.scl = scl
+        self.clk_cal_factor = 1
         self.reg = bytearray(6)
-        scan_r = self.i2c.scan()
-        if not scan_r or not I2C_SLAVE_ADDR in scan_r:
+        try:
+            # init the ADC for the battery measurements
+            self.poke_memory(ANSELC_ADDR, 1 << 2)
+            self.poke_memory(ADCON0_ADDR, (0x06 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK)
+            self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
+            # enable the pull-up on RA3
+            self.poke_memory(WPUA_ADDR, (1 << 3))
+        except Exception:
             raise Exception('Pytrack board not detected')
-
-        # init the ADC for the battery measurements
-        self.poke_memory(ANSELC_ADDR, 1 << 2)
-        self.poke_memory(ADCON0_ADDR, (0x06 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK)
-        self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
-        # enable the pull-up on RA3
-        self.poke_memory(WPUA_ADDR, (1 << 3))
 
     def _write(self, data, wait=True):
         self.i2c.writeto(I2C_SLAVE_ADDR, data)
@@ -80,9 +84,13 @@ class Pytrack:
         return self.i2c.readfrom(I2C_SLAVE_ADDR, size + 1)[1:(size + 1)]
 
     def _wait(self):
-        time.sleep_us(100)
+        count = 0
+        time.sleep_us(10)
         while self.i2c.readfrom(I2C_SLAVE_ADDR, 1)[0] != 0xFF:
-            time.sleep_us(100)
+            time.sleep_us(10)
+            count += 1
+            if (count > 1000):  # timeout after 10ms
+                raise Exception('Pytrack board timeout')
 
     def _send_cmd(self, cmd):
         self._write(bytes([cmd]))
@@ -123,6 +131,8 @@ class Pytrack:
         self.magic_write_read(addr, _or=bits)
 
     def setup_sleep(self, time_s):
+        self.calibrate_rtc()
+        time_s = int((time_s * self.clk_cal_factor) + 0.5)  # round to the nearest integer
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
     def go_to_sleep(self):
@@ -133,6 +143,14 @@ class Pytrack:
         self._write(bytes([CMD_GO_SLEEP]), wait=False)
         # kill the run pin
         Pin('P3', mode=Pin.OUT, value=0)
+
+    def calibrate_rtc(self):
+        self._write(bytes([CMD_CALIBRATE]), wait=False)
+        Pin('P21', mode=Pin.IN)
+        pulses = pycom.pulses_get('P21', 50000)
+        self.i2c = I2C(0, mode=I2C.MASTER, pins=(self.sda, self.scl))
+        period = pulses[2][1] - pulses[0][1]
+        self.clk_cal_factor = (EXP_RTC_PERIOD / period) * 0.98
 
     def button_pressed(self):
         button = self.peek_memory(PORTA_ADDR) & (1 << 3)
