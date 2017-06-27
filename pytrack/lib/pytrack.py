@@ -1,4 +1,5 @@
 from machine import Pin
+from machine import I2C
 import time
 import pycom
 
@@ -146,11 +147,13 @@ class Pytrack:
 
     def calibrate_rtc(self):
         self._write(bytes([CMD_CALIBRATE]), wait=False)
+        self.i2c.deinit()
         Pin('P21', mode=Pin.IN)
         pulses = pycom.pulses_get('P21', 50000)
-        self.i2c = I2C(0, mode=I2C.MASTER, pins=(self.sda, self.scl))
+        self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl))
         period = pulses[2][1] - pulses[0][1]
-        self.clk_cal_factor = (EXP_RTC_PERIOD / period) * 0.98
+        if period > 0:
+            self.clk_cal_factor = (EXP_RTC_PERIOD / period) * 0.98
 
     def button_pressed(self):
         button = self.peek_memory(PORTA_ADDR) & (1 << 3)
