@@ -60,7 +60,6 @@ class Pytrack:
         if i2c is not None:
             self.i2c = i2c
         else:
-            from machine import I2C
             self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
         self.sda = sda
         self.scl = scl
@@ -88,9 +87,9 @@ class Pytrack:
         count = 0
         time.sleep_us(10)
         while self.i2c.readfrom(I2C_SLAVE_ADDR, 1)[0] != 0xFF:
-            time.sleep_us(10)
+            time.sleep_us(100)
             count += 1
-            if (count > 1000):  # timeout after 10ms
+            if (count > 500):  # timeout after 50ms
                 raise Exception('Pytrack board timeout')
 
     def _send_cmd(self, cmd):

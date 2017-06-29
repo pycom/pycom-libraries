@@ -87,10 +87,10 @@ class Pysense:
         count = 0
         time.sleep_us(10)
         while self.i2c.readfrom(I2C_SLAVE_ADDR, 1)[0] != 0xFF:
-            time.sleep_us(10)
+            time.sleep_us(100)
             count += 1
-            if (count > 1000):  # timeout after 10ms
-                raise Exception('Pysense board timeout')
+            if (count > 500):  # timeout after 50ms
+                raise Exception('Pytrack board timeout')
 
     def _send_cmd(self, cmd):
         self._write(bytes([cmd]))
