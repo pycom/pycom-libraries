@@ -145,6 +145,10 @@ class Pysense:
         Pin('P3', mode=Pin.OUT, value=0)
 
     def calibrate_rtc(self):
+        # the 1.024 factor is because the PIC LF operates at 31 KHz
+        # WDT has a frequency divider to generate 1 ms
+        # and then there is a binary prescaler, e.g., 1, 2, 4 ... 512, 1024 ms
+        # hence the need for the constant
         self._write(bytes([CMD_CALIBRATE]), wait=False)
         self.i2c.deinit()
         Pin('P21', mode=Pin.IN)
@@ -152,7 +156,7 @@ class Pysense:
         self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl))
         period = pulses[2][1] - pulses[0][1]
         if period > 0:
-            self.clk_cal_factor = (EXP_RTC_PERIOD / period) * 0.98
+            self.clk_cal_factor = (EXP_RTC_PERIOD / period) * (1000 / 1024)
 
     def button_pressed(self):
         button = self.peek_memory(PORTA_ADDR) & (1 << 3)
