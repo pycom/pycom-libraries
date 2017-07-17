@@ -2,10 +2,15 @@ from machine import UART
 from machine import Pin
 import pycom
 
-__version__ = '0.9.0'
+__version__ = '1.0.0'
+
 
 PIN_MASK = 0b1010
 COMM_PIN = 'P10'
+
+TIMER_WAKE = 1 << 4
+RESET_WAKE = 1 << 5
+
 
 class DeepSleep:
 
@@ -35,7 +40,7 @@ class DeepSleep:
 
     def _magic(self, address, and_val, or_val, xor_val, expected=None):
         self._start()
-        self._send([address, and_val, or_val, xor_val])
+        self._send([address, and_val & 0xFF, or_val & 0xFF, xor_val & 0xFF])
         if expected is None:
             return self.uart.read()
         else:
@@ -51,10 +56,10 @@ class DeepSleep:
         self._magic(address, 0xFF, mask, 0)
 
     def clearbits(self, address, mask):
-        self._magic(address, ~mask & 0xFF, 0, 0)
+        self._magic(address, ~mask, 0, 0)
 
     def clear_set_bits(self, address, mask_clear, mask_set):
-        self._magic(address, ~mask_clear & 0xFF, mask_set, 0)
+        self._magic(address, ~mask_clear, mask_set, 0)
 
     def togglebits(self, address, mask):
         self._magic(address, 0xFF, 0, mask)
@@ -77,7 +82,7 @@ class DeepSleep:
         Pin(COMM_PIN, mode=Pin.IN)
         pulses = pycom.pulses_get(COMM_PIN, 50000)
         self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ))
-        self.clk_cal_factor  = (pulses[3][1] - pulses[1][1]) / EXP_RTC_PERIOD
+        self.clk_cal_factor = (pulses[3][1] - pulses[1][1]) / EXP_RTC_PERIOD
         if self.clk_cal_factor > 1.25 or self.clk_cal_factor < 0.75:
             self.clk_cal_factor = 1
 
@@ -107,9 +112,11 @@ class DeepSleep:
         #   4: TIMEOUT
         #   5: RESET (or power-on)
 
-        return self.peek(WAKE_STATUS_ADDR)
+        wake_r = self.peek(WAKE_STATUS_ADDR)
+        return {'wake': wake_r & (TIMER_WAKE | RESET_WAKE), 'P10': wake_r & 0x01, 'P17': (wake_r & 0x02) >> 1, 'P18': (wake_r & 0x08) >> 3}
 
     def set_min_voltage_limit(self, value):
+        # voltage value passed in volts (e.g. 3.6)
         value = int(((256 * 2.048) + (value / 2)) / value) # round to the nearest integer
         self.poke(MIN_BAT_ADDR, value)
 
