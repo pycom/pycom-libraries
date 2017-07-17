@@ -6,6 +6,9 @@ from SI7006A20 import SI7006A20
 from LTR329ALS01 import LTR329ALS01
 from MPL3115A2 import MPL3115A2
 
+ALTITUDE = const(0)
+PRESSURE = const(1)
+
 py = Pysense()
 mp = MPL3115A2(py,mode=ALTITUDE) # Returns height in meters. Mode may also be set to PRESSURE, returning a value in Pascals
 si = SI7006A20(py)
