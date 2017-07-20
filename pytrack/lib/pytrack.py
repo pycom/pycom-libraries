@@ -3,7 +3,7 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 EXP_RTC_PERIOD = 7000
 
@@ -65,6 +65,10 @@ class Pytrack:
         self.scl = scl
         self.clk_cal_factor = 1
         self.reg = bytearray(6)
+        try:
+            self.read_fw_version()
+        except Exception:
+            time.sleep_ms(2)
         try:
             # init the ADC for the battery measurements
             self.poke_memory(ANSELC_ADDR, 1 << 2)
@@ -131,7 +135,10 @@ class Pytrack:
         self.magic_write_read(addr, _or=bits)
 
     def setup_sleep(self, time_s):
-        self.calibrate_rtc()
+        try:
+            self.calibrate_rtc()
+        except Exception:
+            pass
         time_s = int((time_s * self.clk_cal_factor) + 0.5)  # round to the nearest integer
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
