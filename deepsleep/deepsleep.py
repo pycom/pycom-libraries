@@ -8,8 +8,9 @@ __version__ = '1.0.0'
 PIN_MASK = 0b1010
 COMM_PIN = 'P10'
 
+PIN_WAKE = 0
 TIMER_WAKE = 1 << 4
-RESET_WAKE = 1 << 5
+POWER_ON_WAKE = 1 << 5
 
 
 class DeepSleep:
@@ -30,6 +31,8 @@ class DeepSleep:
         self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ))
         self.clk_cal_factor = 1
         self.uart.read()
+        # enable the weak pull-ups control
+        self.clearbits(OPTION_REG_ADDR, 1 << 7)
 
     def _send(self, data):
         self.uart.write(bytes(data))
@@ -46,6 +49,26 @@ class DeepSleep:
         else:
             return self.uart.read(expected)
 
+    def _add_to_pin_mask(self, mask, pin):
+        if pin == 'P10' or pin == 'G17':
+            mask |= 0x01
+        elif pin == 'P17' or pin == 'G31':
+            mask |= 0x02
+        elif pin == 'P18' or pin == 'G30':
+            mask |= 0x08
+        else:
+            raise ValueError('Invalid Pin specified: {}'.format(pin))
+        return mask
+
+    def _create_pin_mask(self, pins):
+        mask = 0
+        if type(pins) is str:
+            mask = self._add_to_pin_mask(mask, pins)
+        else:
+            for pin in pins:
+                mask = self._add_to_pin_mask(mask, pin)
+        return mask & PIN_MASK
+
     def poke(self, address, value):
         self._magic(address, 0, value, 0)
 
@@ -57,9 +80,6 @@ class DeepSleep:
 
     def clearbits(self, address, mask):
         self._magic(address, ~mask, 0, 0)
-
-    def clear_set_bits(self, address, mask_clear, mask_set):
-        self._magic(address, ~mask_clear, mask_set, 0)
 
     def togglebits(self, address, mask):
         self._magic(address, 0xFF, 0, mask)
@@ -89,19 +109,29 @@ class DeepSleep:
     def enable_auto_poweroff(self):
         self.setbits(CTRL_0_ADDR, 1 << 1)
 
-    def set_pullups(self, mask):
-        mask &= PIN_MASK
-        if mask:
-            self.clearbits(OPTION_REG_ADDR, 1 << 7)
-        else:
-            self.setbits(OPTION_REG_ADDR, 1 << 7)
-        self.clear_set_bits(WPUA_ADDR, PIN_MASK, mask)
+    def enable_pullups(self, pins):
+        mask = self._create_pin_mask(pins)
+        self.setbits(WPUA_ADDR, mask)
 
-    def set_wake_on_raise(self, mask):
-        self.clear_set_bits(IOCAP_ADDR, PIN_MASK, mask)
+    def disable_pullups(self, pins):
+        mask = self._create_pin_mask(pins)
+        self.clearbits(WPUA_ADDR, mask)
 
-    def set_wake_on_fall(self, mask):
-        self.clear_set_bits(IOCAN_ADDR, PIN_MASK, mask)
+    def enable_wake_on_raise(self, pins):
+        mask = self._create_pin_mask(pins)
+        self.setbits(IOCAP_ADDR, mask)
+
+    def disable_wake_on_raise(self, pins):
+        mask = self._create_pin_mask(pins)
+        self.clearbits(IOCAP_ADDR, mask)
+
+    def enable_wake_on_fall(self, pins):
+        mask = self._create_pin_mask(pins)
+        self.setbits(IOCAN_ADDR, mask)
+
+    def disable_wake_on_fall(self, pins):
+        mask = self._create_pin_mask(pins)
+        self.clearbits(IOCAN_ADDR, mask)
 
     def get_wake_status(self):
         # bits as they are returned from PIC:
@@ -110,14 +140,16 @@ class DeepSleep:
         #   2: PIN 2 value after awake
         #   3: PIN 3 value after awake
         #   4: TIMEOUT
-        #   5: RESET (or power-on)
+        #   5: POWER ON
 
         wake_r = self.peek(WAKE_STATUS_ADDR)
-        return {'wake': wake_r & (TIMER_WAKE | RESET_WAKE), 'P10': wake_r & 0x01, 'P17': (wake_r & 0x02) >> 1, 'P18': (wake_r & 0x08) >> 3}
+        return {'wake': wake_r & (TIMER_WAKE | POWER_ON_WAKE),
+                'P10': wake_r & 0x01, 'P17': (wake_r & 0x02) >> 1,
+                'P18': (wake_r & 0x08) >> 3}
 
     def set_min_voltage_limit(self, value):
-        # voltage value passed in volts (e.g. 3.6)
-        value = int(((256 * 2.048) + (value / 2)) / value) # round to the nearest integer
+        # voltage value passed in volts (e.g. 3.6) and round it to the nearest integer
+        value = int(((256 * 2.048) + (value / 2)) / value)
         self.poke(MIN_BAT_ADDR, value)
 
     def go_to_sleep(self, seconds):
@@ -128,7 +160,8 @@ class DeepSleep:
         # and then there is a binary prescaler, e.g., 1, 2, 4 ... 512, 1024 ms
         # hence the need for the constant
 
-        seconds = int((seconds / (1.024 * self.clk_cal_factor)) + 0.5)  # round to the nearest integer
+        # round to the nearest integer
+        seconds = int((seconds / (1.024 * self.clk_cal_factor)) + 0.5)
         self.poke(SLEEP_TIME_ADDR, (seconds >> 16) & 0xFF)
         self.poke(SLEEP_TIME_ADDR + 1, (seconds >> 8) & 0xFF)
         self.poke(SLEEP_TIME_ADDR + 2, seconds & 0xFF)
