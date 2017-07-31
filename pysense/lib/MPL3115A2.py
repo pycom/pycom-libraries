@@ -1,6 +1,9 @@
 import time
 from machine import I2C
 
+ALTITUDE = const(0)
+PRESSURE = const(1)
+
 class MPL3115A2exception(Exception):
     pass
 
@@ -39,8 +42,6 @@ class MPL3115A2:
     MPL3115_OFFSET_P = const(0x2b)
     MPL3115_OFFSET_T = const(0x2c)
     MPL3115_OFFSET_H = const(0x2d)
-    ALTITUDE = const(0)
-    PRESSURE = const(1)
 
     def __init__(self, pysense = None, sda = 'P22', scl = 'P21', mode = PRESSURE):
         if pysense is not None:
