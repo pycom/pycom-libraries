@@ -153,7 +153,10 @@ class DeepSleep:
         self.poke(MIN_BAT_ADDR, value)
 
     def go_to_sleep(self, seconds):
-        self.calibrate()
+        try:
+            self.calibrate()
+        except Exception:
+            pass
 
         # the 1.024 factor is because the PIC LF operates at 31 KHz
         # WDT has a frequency divider to generate 1 ms
