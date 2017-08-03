@@ -3,7 +3,7 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '1.0.2'
+__version__ = '1.1.0'
 
 EXP_RTC_PERIOD = 7000
 
@@ -45,6 +45,8 @@ class Pytrack:
     ADRESL_ADDR = const(0x09B)
     ADRESH_ADDR = const(0x09C)
 
+    TRISC_ADDR = const(0x08E)
+
     PORTA_ADDR = const(0x00C)
     PORTC_ADDR = const(0x00E)
 
@@ -76,6 +78,11 @@ class Pytrack:
             self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
             # enable the pull-up on RA3
             self.poke_memory(WPUA_ADDR, (1 << 3))
+            # make RC5 an input
+            self.set_bits_in_memory(TRISC_ADDR, 1 << 5)
+            # set RC6 and RC7 as outputs and enable power to the sensors and the GPS
+            self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
+            self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
         except Exception:
             raise Exception('Pytrack board not detected')
 
@@ -142,9 +149,14 @@ class Pytrack:
         time_s = int((time_s * self.clk_cal_factor) + 0.5)  # round to the nearest integer
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
-    def go_to_sleep(self):
-        self.poke_memory(ADCON0_ADDR, 0)    # disable the ADC
-        self.poke_memory(ANSELA_ADDR, ~(1 << 3))   # Don't touch RA3 so that button wake up works
+    def go_to_sleep(self, gps=True):
+        # enable or disable back-up power to the GPS receiver
+        if gps:
+            self.set_bits_in_memory(PORTC_ADDR, 1 << 7)
+        else:
+            self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 7))
+        self.poke_memory(ADCON0_ADDR, 0)            # disable the ADC
+        self.poke_memory(ANSELA_ADDR, ~(1 << 3))    # Don't touch RA3 so that button wake up works
         self.poke_memory(ANSELB_ADDR, 0xFF)
         self.poke_memory(ANSELC_ADDR, ~(1 << 7))
         self._write(bytes([CMD_GO_SLEEP]), wait=False)

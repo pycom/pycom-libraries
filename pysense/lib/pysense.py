@@ -78,6 +78,8 @@ class Pysense:
             self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
             # enable the pull-up on RA3
             self.poke_memory(WPUA_ADDR, (1 << 3))
+            # make RC5 an input
+            self.set_bits_in_memory(TRISC_ADDR, 1 << 5)
             # set RC6 and RC7 as outputs and enable power to the sensors
             self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
             self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
@@ -147,10 +149,9 @@ class Pysense:
         time_s = int((time_s * self.clk_cal_factor) + 0.5)  # round to the nearest integer
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
-    def go_to_sleep(self, pressure_sensor=False):
-        if not pressure_sensor:
-            # disable power to the pressure sensor
-            self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 7))
+    def go_to_sleep(self):
+        # disable back-up power to the pressure sensor
+        self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 7))
         self.poke_memory(ADCON0_ADDR, 0)            # disable the ADC
         self.poke_memory(ANSELA_ADDR, ~(1 << 3))    # Don't touch RA3 so that button wake up works
         self.poke_memory(ANSELB_ADDR, 0xFF)
