@@ -153,22 +153,23 @@ class DeepSleep:
         self.poke(MIN_BAT_ADDR, value)
 
     def go_to_sleep(self, seconds):
-        try:
-            self.calibrate()
-        except Exception:
-            pass
+        while True:
+            try:
+                self.calibrate()
+            except Exception:
+                pass
 
-        # the 1.024 factor is because the PIC LF operates at 31 KHz
-        # WDT has a frequency divider to generate 1 ms
-        # and then there is a binary prescaler, e.g., 1, 2, 4 ... 512, 1024 ms
-        # hence the need for the constant
+            # the 1.024 factor is because the PIC LF operates at 31 KHz
+            # WDT has a frequency divider to generate 1 ms
+            # and then there is a binary prescaler, e.g., 1, 2, 4 ... 512, 1024 ms
+            # hence the need for the constant
 
-        # round to the nearest integer
-        seconds = int((seconds / (1.024 * self.clk_cal_factor)) + 0.5)
-        self.poke(SLEEP_TIME_ADDR, (seconds >> 16) & 0xFF)
-        self.poke(SLEEP_TIME_ADDR + 1, (seconds >> 8) & 0xFF)
-        self.poke(SLEEP_TIME_ADDR + 2, seconds & 0xFF)
-        self.setbits(CTRL_0_ADDR, 1 << 0)
+            # round to the nearest integer
+            seconds = int((seconds / (1.024 * self.clk_cal_factor)) + 0.5)
+            self.poke(SLEEP_TIME_ADDR, (seconds >> 16) & 0xFF)
+            self.poke(SLEEP_TIME_ADDR + 1, (seconds >> 8) & 0xFF)
+            self.poke(SLEEP_TIME_ADDR + 2, seconds & 0xFF)
+            self.setbits(CTRL_0_ADDR, 1 << 0)
 
     def hw_reset(self):
         self.setbits(CTRL_0_ADDR, 1 << 4)

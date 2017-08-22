@@ -1,4 +1,5 @@
 from deepsleep import DeepSleep
+import deepsleep
 
 ds = DeepSleep()
 
