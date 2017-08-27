@@ -40,6 +40,7 @@ class L76GNSS:
     def coordinates(self, debug=False):
         lat_d, lon_d, debug_timeout = None, None, False
         if self.timeout != None:
+            self.chrono.reset()
             self.chrono.start()
         nmea = b''
         while True:
