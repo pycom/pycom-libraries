@@ -71,6 +71,7 @@ class NanoGateway:
         self.pull_alarm = None
         self.uplink_alarm = None
 
+        self.udp_stop = False
         self.udp_lock = _thread.allocate_lock()
 
         self.lora = None
@@ -99,6 +100,7 @@ class NanoGateway:
         self.pull_alarm = Timer.Alarm(handler=lambda u: self._pull_data(), s=25, periodic=True)
 
         # start the UDP receive thread
+        self.udp_stop = False
         _thread.start_new_thread(self._udp_thread, ())
 
         # initialize the LoRa radio in LORA mode
@@ -112,10 +114,18 @@ class NanoGateway:
         self.lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=self._lora_cb)
 
     def stop(self):
-        # TODO: Check how to stop the NTP sync
-        # TODO: Create a cancel method for the alarm
-        # TODO: kill the UDP thread
-        self.sock.close()
+        # send the LoRa radio to sleep, stop NTP sync, cancel the alarms and stop the UDP thread
+        self.lora.power_mode(LoRa.SLEEP)
+        time.sleep_ms(100)
+        self.rtc.ntp_sync(None)
+        self.stat_alarm.cancel()
+        self.pull_alarm.cancel()
+        self.udp_stop = True
+        while self.udp_stop:
+            time.sleep_ms(50)
+        # disable WLAN
+        self.wlan.disconnect()
+        self.wlan.deinit()
 
     def _connect_to_wifi(self):
         self.wlan.connect(self.ssid, auth=(None, self.password))
@@ -202,7 +212,7 @@ class NanoGateway:
         self.lora_sock.send(data)
 
     def _udp_thread(self):
-        while True:
+        while not self.udp_stop:
             try:
                 data, src = self.sock.recvfrom(1024)
                 _token = data[1:3]
@@ -239,3 +249,7 @@ class NanoGateway:
                 print("UDP recv Exception")
             # wait before trying to receive again
             time.sleep(0.025)
+
+        # we are to close the socket
+        self.sock.close()
+        self.udp_stop = False
