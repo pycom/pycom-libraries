@@ -9,11 +9,8 @@ lora = LoRa(mode=LoRa.LORAWAN)
 
 # create an ABP authentication params
 dev_addr = struct.unpack(">l", binascii.unhexlify('26 01 14 7D'.replace(' ','')))[0]
-nwk_swkey = binascii.unhexlify('3C74F4F40CAE2221303BC24284FCF3AF'.replace(' ',''))
-app_swkey = binascii.unhexlify('0FFA7072CC6FF69A102A0F39BEB0880F'.replace(' ',''))
-
-# join a network using ABP (Activation By Personalization)
-lora.join(activation=LoRa.ABP, auth=(dev_addr, nwk_swkey, app_swkey))
+nwk_swkey = binascii.unhexlify('3C 74 F4 F4 0C AE A0 21 30 3B C2 42 84 FC F3 AF'.replace(' ',''))
+app_swkey = binascii.unhexlify('0F FA 70 72 CC 6F F6 9A 10 2A 0F 39 BE B0 88 0F'.replace(' ',''))
 
 # remove all the non-default channels
 for i in range(3, 16):
@@ -23,6 +20,9 @@ for i in range(3, 16):
 lora.add_channel(0, frequency=868100000, dr_min=0, dr_max=5)
 lora.add_channel(1, frequency=868100000, dr_min=0, dr_max=5)
 lora.add_channel(2, frequency=868100000, dr_min=0, dr_max=5)
+
+# join a network using ABP (Activation By Personalization)
+lora.join(activation=LoRa.ABP, auth=(dev_addr, nwk_swkey, app_swkey))
 
 # create a LoRa socket
 s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
@@ -36,7 +36,7 @@ s.setblocking(False)
 for i in range (200):
     s.send(b'PKT #' + bytes([i]))
     time.sleep(4)
-    rx = s.recv(256)
+    rx, port = s.recvfrom(256)
     if rx:
-        print(rx)
+        print('Received: {}, on port: {}'.format(rx, port))
     time.sleep(6)

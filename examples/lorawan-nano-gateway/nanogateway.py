@@ -77,34 +77,34 @@ class NanoGateway:
         self.lora_sock = None
 
     def start(self):
-        # Change WiFi to STA mode and connect
+        # change WiFi to STA mode and connect
         self.wlan = WLAN(mode=WLAN.STA)
         self._connect_to_wifi()
 
-        # Get a time Sync
+        # get a time Sync
         self.rtc = machine.RTC()
         self.rtc.ntp_sync(self.ntp, update_period=self.ntp_period)
 
-        # Get the server IP and create an UDP socket
+        # get the server IP and create an UDP socket
         self.server_ip = socket.getaddrinfo(self.server, self.port)[0][-1]
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setblocking(False)
 
-        # Push the first time immediatelly
+        # push the first time immediatelly
         self._push_data(self._make_stat_packet())
 
-        # Create the alarms
+        # create the alarms
         self.stat_alarm = Timer.Alarm(handler=lambda t: self._push_data(self._make_stat_packet()), s=60, periodic=True)
         self.pull_alarm = Timer.Alarm(handler=lambda u: self._pull_data(), s=25, periodic=True)
 
-        # Start the UDP receive thread
+        # start the UDP receive thread
         _thread.start_new_thread(self._udp_thread, ())
 
-        # Initialize LoRa in LORA mode
+        # initialize the LoRa radio in LORA mode
         self.lora = LoRa(mode=LoRa.LORA, frequency=self.frequency, bandwidth=LoRa.BW_125KHZ, sf=self.sf,
                          preamble=8, coding_rate=LoRa.CODING_4_5, tx_iq=True)
-        # Create a raw LoRa socket
+        # create a raw LoRa socket
         self.lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
         self.lora_sock.setblocking(False)
         self.lora_tx_done = False
@@ -196,8 +196,7 @@ class NanoGateway:
 
     def _send_down_link(self, data, tmst, datarate, frequency):
         self.lora.init(mode=LoRa.LORA, frequency=frequency, bandwidth=LoRa.BW_125KHZ,
-                       sf=self._dr_to_sf(datarate), preamble=8, coding_rate=LoRa.CODING_4_5,
-                       tx_iq=True)
+                       sf=self._dr_to_sf(datarate), preamble=8, coding_rate=LoRa.CODING_4_5, tx_iq=True)
         while time.ticks_us() < tmst:
             pass
         self.lora_sock.send(data)
@@ -217,12 +216,12 @@ class NanoGateway:
                     ack_error = TX_ERR_NONE
                     tx_pk = json.loads(data[4:])
                     tmst = tx_pk["txpk"]["tmst"]
-                    t_us = tmst - time.ticks_us() - 5000
+                    t_us = tmst - time.ticks_us() - 12500
                     if t_us < 0:
                         t_us += 0xFFFFFFFF
                     if t_us < 20000000:
                         self.uplink_alarm = Timer.Alarm(handler=lambda x: self._send_down_link(binascii.a2b_base64(tx_pk["txpk"]["data"]),
-                                                                                               tx_pk["txpk"]["tmst"] - 10, tx_pk["txpk"]["datr"],
+                                                                                               tx_pk["txpk"]["tmst"] - 50, tx_pk["txpk"]["datr"],
                                                                                                int(tx_pk["txpk"]["freq"] * 1000000)), us=t_us)
                     else:
                         ack_error = TX_ERR_TOO_LATE
@@ -238,5 +237,5 @@ class NanoGateway:
                     print("UDP recv OSError Exception")
             except Exception:
                 print("UDP recv Exception")
-            # Wait before trying to receive again
+            # wait before trying to receive again
             time.sleep(0.025)

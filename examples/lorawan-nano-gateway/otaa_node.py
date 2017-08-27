@@ -12,7 +12,7 @@ lora = LoRa(mode=LoRa.LORAWAN)
 # create an OTA authentication params
 dev_eui = binascii.unhexlify('AA BB CC DD EE FF 77 78'.replace(' ',''))
 app_eui = binascii.unhexlify('70 B3 D5 7E F0 00 3B FD'.replace(' ',''))
-app_key = binascii.unhexlify('36 AB 76 25 FE 77 77 68 81 68 3B 49 53 00 FF D6'.replace(' ',''))
+app_key = binascii.unhexlify('36 AB 76 25 FE 77 0B 68 81 68 3B 49 53 00 FF D6'.replace(' ',''))
 
 # set the 3 default channels to the same frequency (must be before sending the OTAA join request)
 lora.add_channel(0, frequency=868100000, dr_min=0, dr_max=5)
@@ -45,7 +45,7 @@ time.sleep(5.0)
 for i in range (200):
     s.send(b'PKT #' + bytes([i]))
     time.sleep(4)
-    rx = s.recv(256)
+    rx, port = s.recvfrom(256)
     if rx:
-        print(rx)
+        print('Received: {}, on port: {}'.format(rx, port))
     time.sleep(6)
