@@ -1,6 +1,7 @@
 from machine import UART
 from machine import Pin
 import pycom
+import gc
 
 __version__ = '1.0.0'
 
@@ -153,6 +154,7 @@ class DeepSleep:
         self.poke(MIN_BAT_ADDR, value)
 
     def go_to_sleep(self, seconds):
+        gc.collect()
         while True:
             try:
                 self.calibrate()
