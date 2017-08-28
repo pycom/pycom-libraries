@@ -60,6 +60,7 @@ class NanoGateway:
         self.port = port
         self.ntp = ntp
         self.ntp_period = ntp_period
+        self.rtc = machine.RTC()
 
         self.rxnb = 0
         self.rxok = 0
@@ -78,13 +79,15 @@ class NanoGateway:
         self.lora_sock = None
 
     def start(self):
-        # change WiFi to STA mode and connect
+        # setup WiFi as a station and connect
         self.wlan = WLAN(mode=WLAN.STA)
         self._connect_to_wifi()
 
-        # get a time Sync
-        self.rtc = machine.RTC()
+        # get a time sync
         self.rtc.ntp_sync(self.ntp, update_period=self.ntp_period)
+        while not self.rtc.synced():
+            time.sleep_ms(50)
+        print("RTC NTP sync complete")
 
         # get the server IP and create an UDP socket
         self.server_ip = socket.getaddrinfo(self.server, self.port)[0][-1]
@@ -114,9 +117,9 @@ class NanoGateway:
         self.lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=self._lora_cb)
 
     def stop(self):
-        # send the LoRa radio to sleep, stop NTP sync, cancel the alarms and stop the UDP thread
+        # send the LoRa radio to sleep, stop the NTP sync, cancel the alarms and kill the UDP thread
+        self.lora.callback(trigger=None, handler=None)
         self.lora.power_mode(LoRa.SLEEP)
-        time.sleep_ms(100)
         self.rtc.ntp_sync(None)
         self.stat_alarm.cancel()
         self.pull_alarm.cancel()
@@ -130,8 +133,8 @@ class NanoGateway:
     def _connect_to_wifi(self):
         self.wlan.connect(self.ssid, auth=(None, self.password))
         while not self.wlan.isconnected():
-            time.sleep(0.5)
-        print("WiFi connected!")
+            time.sleep_ms(50)
+        print("WiFi connected")
 
     def _dr_to_sf(self, dr):
         sf = dr[2:4]
