@@ -3,7 +3,7 @@ from machine import Pin
 import pycom
 import gc
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 
 PIN_MASK = 0b1010
