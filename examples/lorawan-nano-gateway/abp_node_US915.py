@@ -13,14 +13,13 @@ dev_addr = struct.unpack(">l", binascii.unhexlify('26 01 14 7D'.replace(' ',''))
 nwk_swkey = binascii.unhexlify('3C 74 F4 F4 0C AE A0 21 30 3B C2 42 84 FC F3 AF'.replace(' ',''))
 app_swkey = binascii.unhexlify('0F FA 70 72 CC 6F F6 9A 10 2A 0F 39 BE B0 88 0F'.replace(' ',''))
 
-# remove all the non-default channels
-for i in range(3, 16):
-    lora.remove_channel(i)
+# remove all the channels
+for channel in range(0, 72):
+    lora.remove_channel(channel)
 
-# set the 3 default channels to the same frequency
-lora.add_channel(0, frequency=config.LORA_FREQUENCY, dr_min=0, dr_max=5)
-lora.add_channel(1, frequency=config.LORA_FREQUENCY, dr_min=0, dr_max=5)
-lora.add_channel(2, frequency=config.LORA_FREQUENCY, dr_min=0, dr_max=5)
+# set all channels to the same frequency (must be before sending the OTAA join request)
+for channel in range(0, 72):
+    lora.add_channel(channel, frequency=config.LORA_FREQUENCY, dr_min=0, dr_max=3)
 
 # join a network using ABP (Activation By Personalization)
 lora.join(activation=LoRa.ABP, auth=(dev_addr, nwk_swkey, app_swkey))
