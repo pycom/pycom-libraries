@@ -3,7 +3,7 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 EXP_RTC_PERIOD = 7000
 
@@ -37,6 +37,9 @@ class Pytrack:
     ADCON0_ADDR = const(0x9D)
     ADCON1_ADDR = const(0x9E)
 
+    IOCAP_ADDR = const(0x391)
+    IOCAN_ADDR = const(0x392)
+
     _ADCON0_CHS_POSN = const(0x02)
     _ADCON0_ADON_MASK = const(0x01)
     _ADCON1_ADCS_POSN = const(0x04)
@@ -63,10 +66,13 @@ class Pytrack:
             self.i2c = i2c
         else:
             self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
+
         self.sda = sda
         self.scl = scl
         self.clk_cal_factor = 1
         self.reg = bytearray(6)
+        self.wake_int = False
+
         try:
             self.read_fw_version()
         except Exception:
@@ -155,10 +161,19 @@ class Pytrack:
             self.set_bits_in_memory(PORTC_ADDR, 1 << 7)
         else:
             self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 7))
-        self.poke_memory(ADCON0_ADDR, 0)            # disable the ADC
-        self.poke_memory(ANSELA_ADDR, ~(1 << 3))    # Don't touch RA3 so that button wake up works
+        # disable the ADC
+        self.poke_memory(ADCON0_ADDR, 0)
+
+        if self.wake_int:
+            # Don't touch RA3 or RA5 so that interrupt wake-up works
+            self.poke_memory(ANSELA_ADDR, ~((1 << 3) | (1 << 5)))
+            self.poke_memory(ANSELC_ADDR, ~((1 << 6) | (1 << 7)))
+        else:
+            # disable power to the accelerometer, and don't touch RA3 so that button wake-up works
+            self.poke_memory(ANSELA_ADDR, ~(1 << 3))
+            self.poke_memory(ANSELC_ADDR, ~(1 << 7))
+
         self.poke_memory(ANSELB_ADDR, 0xFF)
-        self.poke_memory(ANSELC_ADDR, ~(1 << 7))
         self._write(bytes([CMD_GO_SLEEP]), wait=False)
         # kill the run pin
         Pin('P3', mode=Pin.OUT, value=0)
@@ -188,3 +203,19 @@ class Pytrack:
             time.sleep_us(100)
         adc_val = (self.peek_memory(ADRESH_ADDR) << 2) + (self.peek_memory(ADRESL_ADDR) >> 6)
         return (((adc_val * 3.3 * 280) / 1023) / 180) + 0.01    # add 10mV to compensate for the drop in the FET
+
+    def setup_int_wake_up(self, rising, falling):
+        """ rising is for activity detection, falling for inactivity """
+        wake_int = False
+        if rising:
+            self.set_bits_in_memory(IOCAP_ADDR, 1 << 5)
+            wake_int = True
+        else:
+            self.mask_bits_in_memory(IOCAP_ADDR, ~(1 << 5))
+
+        if falling:
+            self.set_bits_in_memory(IOCAN_ADDR, 1 << 5)
+            wake_int = True
+        else:
+            self.mask_bits_in_memory(IOCAN_ADDR, ~(1 << 5))
+        self.wake_int = wake_int
