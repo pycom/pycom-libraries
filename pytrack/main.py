@@ -35,3 +35,5 @@ while (True):
     coord = l76.coordinates()
     #f.write("{} - {}\n".format(coord, rtc.now()))
     print("{} - {} - {}".format(coord, rtc.now(), gc.mem_free()))
+    pos = l76.position()
+    print("{} - {} - {}".format(pos, rtc.now(), gc.mem_free()))
