@@ -93,6 +93,10 @@ class Pytrack:
             # set RC6 and RC7 as outputs and enable power to the sensors and the GPS
             self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
             self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
+
+            if self.read_fw_version() < 6:
+                raise ValueError('Pytrack firmware out of date')
+
         except Exception:
             raise Exception('Pytrack board not detected')
 
