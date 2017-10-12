@@ -86,12 +86,14 @@ class LIS2HH12:
         return (self.x[0] * _mult, self.y[0] * _mult, self.z[0] * _mult)
 
     def roll(self):
+        self.acceleration()
         div = math.sqrt(math.pow(self.y[0], 2) + math.pow(self.z[0], 2))
         if div == 0:
             div = 0.01
         return (180 / 3.14154) * math.atan(self.x[0] / div)
 
     def pitch(self):
+        self.acceleration()
         if self.z[0] == 0:
             div = 1
         else:
@@ -99,6 +101,7 @@ class LIS2HH12:
         return (180 / 3.14154) * math.atan(math.sqrt(math.pow(self.x[0], 2) + math.pow(self.y[0], 2)) / div)
 
     def yaw(self):
+        self.acceleration()
         div = math.sqrt(math.pow(self.x[0], 2) + math.pow(self.z[0], 2))
         if div == 0:
             div = 0.01

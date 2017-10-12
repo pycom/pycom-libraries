@@ -3,9 +3,11 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
-EXP_RTC_PERIOD = 7000
+WAKE_REASON_ACCELEROMETER = 1
+WAKE_REASON_PUSH_BUTTON = 2
+WAKE_REASON_TIMER = 4
 
 class Pytrack:
 
@@ -55,11 +57,13 @@ class Pytrack:
 
     WPUA_ADDR = const(0x20C)
 
-    MEMORY_BANK_ADDR = const(0x620)
+    WAKE_REASON_ADDR = const(0x064F)
+    MEMORY_BANK_ADDR = const(0x0620)
 
     PCON_ADDR = const(0x096)
     STATUS_ADDR = const(0x083)
 
+    EXP_RTC_PERIOD = const(7000)
 
     def __init__(self, i2c=None, sda='P22', scl='P21'):
         if i2c is not None:
@@ -146,6 +150,9 @@ class Pytrack:
 
     def set_bits_in_memory(self, addr, bits):
         self.magic_write_read(addr, _or=bits)
+
+    def get_wake_reason(self):
+        return self.peek_memory(WAKE_REASON_ADDR)
 
     def setup_sleep(self, time_s):
         try:
