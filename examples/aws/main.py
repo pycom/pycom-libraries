@@ -1,2 +1,0 @@
-import demo
-demo.run()
