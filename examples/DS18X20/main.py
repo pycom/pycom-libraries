@@ -8,7 +8,7 @@ ow = OneWire(Pin('P10'))
 temp = DS18X20(ow)
 
 while True:
-    temp.start_convertion()    
+    temp.start_conversion()
     time.sleep(1)
     print(temp.read_temp_async())
     time.sleep(1)

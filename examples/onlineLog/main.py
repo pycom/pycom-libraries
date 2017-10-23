@@ -14,7 +14,7 @@ ow = OneWire(machine.Pin('P10'))
 temp = DS18X20(ow)
 
 while True:
-    temp.start_convertion()
+    temp.start_conversion()
     time.sleep(1)
     tempValue = temp.read_temp_async()/100.0
     u = 'POST /input/%s?private_key=%s&temp=%f HTTP/1.0\n\n'%( publicKey, privateKey, tempValue)

@@ -168,7 +168,7 @@ class DS18X20(object):
         """
         return not self.ow.read_bit()
 
-    def start_convertion(self, rom=None):
+    def start_conversion(self, rom=None):
         """
         Start the temp conversion on one DS18x20 device.
         Pass the 8-byte bytes object with the ROM of the specific device you want to read.
