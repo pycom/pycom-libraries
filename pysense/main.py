@@ -22,6 +22,5 @@ print(lt.light())
 print(li.acceleration())
 print(li.roll())
 print(li.pitch())
-print(li.yaw())
 
 print(py.read_battery_voltage())
