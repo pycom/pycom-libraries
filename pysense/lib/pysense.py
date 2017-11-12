@@ -115,7 +115,7 @@ class Pysense:
             time.sleep_us(100)
             count += 1
             if (count > 500):  # timeout after 50ms
-                raise Exception('Pytrack board timeout')
+                raise Exception('Pysense board timeout')
 
     def _send_cmd(self, cmd):
         self._write(bytes([cmd]))
