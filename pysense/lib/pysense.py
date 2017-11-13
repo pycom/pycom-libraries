@@ -115,7 +115,7 @@ class Pysense:
             time.sleep_us(100)
             count += 1
             if (count > 500):  # timeout after 50ms
-                raise Exception('Pytrack board timeout')
+                raise Exception('Pysense board timeout')
 
     def _send_cmd(self, cmd):
         self._write(bytes([cmd]))
@@ -194,9 +194,12 @@ class Pysense:
         self._write(bytes([CMD_CALIBRATE]), wait=False)
         self.i2c.deinit()
         Pin('P21', mode=Pin.IN)
-        pulses = pycom.pulses_get('P21', 50000)
+        pulses = pycom.pulses_get('P21', 50)
         self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl))
-        period = pulses[2][1] - pulses[0][1]
+        try:
+            period = pulses[2][1] - pulses[0][1]
+        except:
+            pass
         if period > 0:
             self.clk_cal_factor = (EXP_RTC_PERIOD / period) * (1000 / 1024)
 
