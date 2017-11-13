@@ -3,3 +3,5 @@
 *.e4p
 *.1
 *.conf
+.DS_Store
+
