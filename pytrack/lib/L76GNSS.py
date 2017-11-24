@@ -71,8 +71,8 @@ class L76GNSS:
                         break
             else:
                 gc.collect()
-                if len(nmea) > 4096:
-                    nmea = b''
+                if len(nmea) > 410: # i suppose it can be safely changed to 82, which is longest NMEA frame
+                    nmea = nmea[-5:] # $GNGL without last L
             time.sleep(0.1)
         self.timeout_status = True
         if debug and debug_timeout:
