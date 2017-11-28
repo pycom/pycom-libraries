@@ -3,7 +3,7 @@ from machine import Pin
 import pycom
 import gc
 
-__version__ = '1.0.1'
+__version__ = '1.0.5'
 
 
 PIN_MASK = 0b1010
@@ -29,7 +29,7 @@ class DeepSleep:
     EXP_RTC_PERIOD = const(7000)
 
     def __init__(self):
-        self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ))
+        self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ), timeout_chars=3)
         self.clk_cal_factor = 1
         self.uart.read()
         # enable the weak pull-ups control
@@ -39,7 +39,7 @@ class DeepSleep:
         self.uart.write(bytes(data))
 
     def _start(self):
-        self.uart.sendbreak(20)
+        self.uart.sendbreak(12)
         self._send([0x55])
 
     def _magic(self, address, and_val, or_val, xor_val, expected=None):
@@ -75,7 +75,10 @@ class DeepSleep:
         self._magic(address, 0, value, 0)
 
     def peek(self, address):
-        return self._magic(address, 0xFF, 0, 0)[6]
+        try:
+            return self._magic(address, 0xFF, 0, 0)[6]
+        except:
+            return self._magic(address, 0xFF, 0, 0)[6]
 
     def setbits(self, address, mask):
         self._magic(address, 0xFF, mask, 0)
@@ -100,15 +103,20 @@ class DeepSleep:
 
         # setbits, but limit the number of received bytes to avoid confusion with pattern
         self._magic(CTRL_0_ADDR, 0xFF, 1 << 2, 0, 0)
-        self.uart.deinit()
         self._pulses = pycom.pulses_get(COMM_PIN, 50)
-        self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ))
+        self.uart.init(baudrate=10000, pins=(COMM_PIN, ), timeout_chars=3)
         try:
-            self.clk_cal_factor = (self._pulses[4][1] - self._pulses[1][1]) / EXP_RTC_PERIOD
+            if len(self._pulses) > 6:
+                self.clk_cal_factor = (self._pulses[6][1] - self._pulses[4][1]) / EXP_RTC_PERIOD
+            else:
+                self.clk_cal_factor = (self._pulses[5][1] - self._pulses[3][1]) / EXP_RTC_PERIOD
         except:
             pass
         if self.clk_cal_factor > 1.25 or self.clk_cal_factor < 0.75:
             self.clk_cal_factor = 1
+        # flush the buffer
+        self.uart.read()
+        self.get_wake_status()
 
     def enable_auto_poweroff(self):
         self.setbits(CTRL_0_ADDR, 1 << 1)
