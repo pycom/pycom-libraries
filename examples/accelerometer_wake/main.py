@@ -38,4 +38,4 @@ time.sleep(0.1)
 
 # go to sleep for 5 minutes maximum if no accelerometer interrupt happens
 py.setup_sleep(300)
-#py.go_to_sleep()
+py.go_to_sleep()
