@@ -104,7 +104,7 @@ class MPL3115A2:
         if alt_int > 32767:
             alt_int -= 65536
 
-        return float(alt_int + alt_frac / 4.0)
+        return float(alt_int + alt_frac / 16.0)
 
     def temperature(self):
         OUT_T_MSB = self.i2c.readfrom_mem(MPL3115_I2CADDR, MPL3115_TEMP_DATA_MSB,1)
