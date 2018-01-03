@@ -225,7 +225,7 @@ class WiFiOTA(OTA):
             if fp is not None:
                 fp.close()
             if firmware:
-                pycom.ota_stop()
+                pycom.ota_finish()
 
         except Exception as e:
             # Since only one hash operation is allowed at Once

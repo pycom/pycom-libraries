@@ -29,3 +29,7 @@ OTA update.
 
 The OTA library can be found in either `1.0.0\lib\OTA.py` or
 `1.0.1\lib\OTA.py`.
+
+For a detailed explanation of how the server works please look in
+`OTA_server.py`. The comment at the top of the file explains how it works in
+detail.
