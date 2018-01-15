@@ -153,7 +153,7 @@ class WiFiOTA(OTA):
 
     def connect(self):
         self.wlan = network.WLAN(mode=network.WLAN.STA)
-        if not self.wlan.isconnected() or self.ssid() != self.SSID:
+        if not self.wlan.isconnected() or self.wlan.ssid() != self.SSID:
             for net in self.wlan.scan():
                 if net.ssid == self.SSID:
                     self.wlan.connect(self.SSID, auth=(network.WLAN.WPA2,
