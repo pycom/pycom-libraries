@@ -35,7 +35,9 @@ s.setsockopt(socket.SOL_LORA, socket.SO_DR, config.LORA_NODE_DR)
 s.setblocking(False)
 
 for i in range (200):
-    s.send(b'PKT #' + bytes([i]))
+    pkt = b'PKT #' + bytes([i])
+    print('Sending:', pkt)
+    s.send(pkt)
     time.sleep(4)
     rx, port = s.recvfrom(256)
     if rx:

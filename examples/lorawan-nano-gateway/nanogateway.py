@@ -157,7 +157,7 @@ class NanoGateway:
         _thread.start_new_thread(self._udp_thread, ())
 
         # initialize the LoRa radio in LORA mode
-        self._log('Setting up the LoRa radio at {:.1f} Mhz using {}', self._freq_to_float(self.frequency), self.datarate)
+        self._log('Setting up the LoRa radio at {} Mhz using {}', self._freq_to_float(self.frequency), self.datarate)
         self.lora = LoRa(
             mode=LoRa.LORA,
             frequency=self.frequency,
@@ -344,7 +344,7 @@ class NanoGateway:
             pass
         self.lora_sock.send(data)
         self._log(
-            'Sent downlink packet scheduled on {:.3f}, at {:.1f} Mhz using {}: {}',
+            'Sent downlink packet scheduled on {:.3f}, at {:.3f} Mhz using {}: {}',
             tmst / 1000000,
             self._freq_to_float(frequency),
             datarate,
@@ -370,7 +370,7 @@ class NanoGateway:
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
                     tmst = tx_pk["txpk"]["tmst"]
-                    t_us = tmst - utime.ticks_us() - 12500
+                    t_us = tmst - utime.ticks_us() - 15000
                     if t_us < 0:
                         t_us += 0xFFFFFFFF
                     if t_us < 20000000:
@@ -378,7 +378,7 @@ class NanoGateway:
                             handler=lambda x: self._send_down_link(
                                 ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
                                 tx_pk["txpk"]["tmst"] - 50, tx_pk["txpk"]["datr"],
-                                int(tx_pk["txpk"]["freq"] * 1000000)
+                                int(tx_pk["txpk"]["freq"] * 1000) * 1000
                             ), 
                             us=t_us
                         )
