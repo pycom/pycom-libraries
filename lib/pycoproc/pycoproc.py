@@ -232,14 +232,15 @@ class Pycoproc:
         self._write(bytes([CMD_CALIBRATE]), wait=False)
         self.i2c.deinit()
         Pin('P21', mode=Pin.IN)
-        pulses = pycom.pulses_get('P21', 50)
+        pulses = pycom.pulses_get('P21', 20000)
         self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl))
+        period = 0
         try:
             period = pulses[2][1] - pulses[0][1]
         except:
             pass
         if period > 0:
-            self.clk_cal_factor = (EXP_RTC_PERIOD / period) * (1000 / 1024)
+            self.clk_cal_factor = ((EXP_RTC_PERIOD * 1.0) / period) * (1000.0 / 1024.0)
 
     def button_pressed(self):
         button = self.peek_memory(PORTA_ADDR) & (1 << 3)
