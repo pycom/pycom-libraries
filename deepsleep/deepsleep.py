@@ -29,7 +29,7 @@ class DeepSleep:
     EXP_RTC_PERIOD = const(7000)
 
     def __init__(self):
-        self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ), timeout_chars=3)
+        self.uart = UART(1, baudrate=10000, pins=(COMM_PIN, ), timeout_chars=5)
         self.clk_cal_factor = 1
         self.uart.read()
         # enable the weak pull-ups control
@@ -103,20 +103,20 @@ class DeepSleep:
 
         # setbits, but limit the number of received bytes to avoid confusion with pattern
         self._magic(CTRL_0_ADDR, 0xFF, 1 << 2, 0, 0)
-        self._pulses = pycom.pulses_get(COMM_PIN, 50)
-        self.uart.init(baudrate=10000, pins=(COMM_PIN, ), timeout_chars=3)
+        self.uart.deinit()
+        self._pulses = pycom.pulses_get(COMM_PIN, 150)
+        self.uart.init(baudrate=10000, pins=(COMM_PIN, ), timeout_chars=5)
+        idx = 0
+        for i in range(len(self._pulses)):
+            if self._pulses[i][1] > EXP_RTC_PERIOD:
+                idx = i
+                break
         try:
-            if len(self._pulses) > 6:
-                self.clk_cal_factor = (self._pulses[6][1] - self._pulses[4][1]) / EXP_RTC_PERIOD
-            else:
-                self.clk_cal_factor = (self._pulses[5][1] - self._pulses[3][1]) / EXP_RTC_PERIOD
+            self.clk_cal_factor = (self._pulses[idx][1] - self._pulses[(idx - 1)][1]) / EXP_RTC_PERIOD
         except:
-            pass
+            self.clk_cal_factor = 1
         if self.clk_cal_factor > 1.25 or self.clk_cal_factor < 0.75:
             self.clk_cal_factor = 1
-        # flush the buffer
-        self.uart.read()
-        self.get_wake_status()
 
     def enable_auto_poweroff(self):
         self.setbits(CTRL_0_ADDR, 1 << 1)
