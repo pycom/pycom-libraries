@@ -12,7 +12,7 @@ WAKE_REASON_TIMER = 4
 WAKE_REASON_INT_PIN = 8
 
 class Pycoproc:
-    """ class for handling interraction with PIC MCU """
+    """ class for handling the interaction with PIC MCU """
 
     I2C_SLAVE_ADDR = const(8)
 
