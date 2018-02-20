@@ -257,6 +257,7 @@ def get_new_firmware(path, current_ver):
 #    version - The version number of the file
 #    host - The server address, used in URL formatting
 def generate_manifest_entry(host, path, version):
+    path = "/".join(path.split(os.path.sep))
     entry = {}
     entry["dst_path"] = "/{}".format(path)
     entry["URL"] = "http://{}/{}/{}".format(host, version, path)
