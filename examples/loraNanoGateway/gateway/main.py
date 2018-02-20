@@ -17,7 +17,7 @@ lora = LoRa(mode=LoRa.LORA, rx_iq=True, region=LoRa.EU868)
 lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 lora_sock.setblocking(False)
 
-while (True):/Users/samwilliams/git/pycom-libraries/examples/lorawan-nano-gateway/abp_node_US915.py
+while (True):
    recv_pkg = lora_sock.recv(512)
    if (len(recv_pkg) > 2):
       recv_pkg_len = recv_pkg[1]
