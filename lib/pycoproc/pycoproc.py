@@ -3,7 +3,7 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 """ PIC MCU wakeup reason types """
 WAKE_REASON_ACCELEROMETER = 1
@@ -85,28 +85,28 @@ class Pycoproc:
         self.wake_int_pin = False
         self.wake_int_pin_rising_edge = True
 
+        # Make sure we are inserted into the
+        # correct board and can talk to the PIC
         try:
             self.read_fw_version()
-        except Exception:
-            time.sleep_ms(2)
-        try:
-            # init the ADC for the battery measurements
-            self.poke_memory(ANSELC_ADDR, 1 << 2)
-            self.poke_memory(ADCON0_ADDR, (0x06 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK)
-            self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
-            # enable the pull-up on RA3
-            self.poke_memory(WPUA_ADDR, (1 << 3))
-            # make RC5 an input
-            self.set_bits_in_memory(TRISC_ADDR, 1 << 5)
-            # set RC6 and RC7 as outputs and enable power to the sensors and the GPS
-            self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
-            self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
+        except Exception as e:
+            raise Exception('Board not detected: {}'.format(e))
 
-            if self.read_fw_version() < 6:
-                raise ValueError('Firmware out of date')
+        # init the ADC for the battery measurements
+        self.poke_memory(ANSELC_ADDR, 1 << 2)
+        self.poke_memory(ADCON0_ADDR, (0x06 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK)
+        self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
+        # enable the pull-up on RA3
+        self.poke_memory(WPUA_ADDR, (1 << 3))
+        # make RC5 an input
+        self.set_bits_in_memory(TRISC_ADDR, 1 << 5)
+        # set RC6 and RC7 as outputs and enable power to the sensors and the GPS
+        self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
+        self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
 
-        except Exception:
-            raise Exception('Board not detected')
+        if self.read_fw_version() < 6:
+            raise ValueError('Firmware out of date')
+
 
     def _write(self, data, wait=True):
         self.i2c.writeto(I2C_SLAVE_ADDR, data)
