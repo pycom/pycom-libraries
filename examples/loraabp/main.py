@@ -4,7 +4,12 @@ import binascii
 import struct
 
 # Initialize LoRa in LORAWAN mode.
-lora = LoRa(mode=LoRa.LORAWAN)
+# Please pick the region that matches where you are using the device:
+# Asia = LoRa.AS923
+# Australia = LoRa.AU915
+# Europe = LoRa.EU868
+# United States = LoRa.US915
+lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 
 # create an ABP authentication params
 dev_addr = struct.unpack(">l", binascii.unhexlify('00 00 00 05'.replace(' ','')))[0]

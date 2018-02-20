@@ -11,7 +11,12 @@ DEVICE_ID = 0x01
 
 
 # Open a Lora Socket, use tx_iq to avoid listening to our own messages
-lora = LoRa(mode=LoRa.LORA, tx_iq=True)
+# Please pick the region that matches where you are using the device:
+# Asia = LoRa.AS923
+# Australia = LoRa.AU915
+# Europe = LoRa.EU868
+# United States = LoRa.US915
+lora = LoRa(mode=LoRa.LORA, tx_iq=True, region=LoRa.EU868)
 lora_sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 lora_sock.setblocking(False)
 

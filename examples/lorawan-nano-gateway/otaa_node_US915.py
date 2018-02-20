@@ -8,7 +8,12 @@ import time
 import config
 
 # initialize LoRa in LORAWAN mode.
-lora = LoRa(mode=LoRa.LORAWAN)
+# Please pick the region that matches where you are using the device:
+# Asia = LoRa.AS923
+# Australia = LoRa.AU915
+# Europe = LoRa.EU868
+# United States = LoRa.US915
+lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.US915)
 
 # create an OTA authentication params
 dev_eui = binascii.unhexlify('AA BB CC DD EE FF 77 78'.replace(' ',''))
