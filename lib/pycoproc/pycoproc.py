@@ -187,6 +187,8 @@ class Pycoproc:
         except Exception:
             pass
         time_s = int((time_s * self.clk_cal_factor) + 0.5)  # round to the nearest integer
+        if time_s >= 2**(8*3):
+            time_s = 2**(8*3)-1
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
     def go_to_sleep(self, gps=True):
