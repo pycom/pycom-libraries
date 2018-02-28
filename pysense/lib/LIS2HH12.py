@@ -44,7 +44,6 @@ class LIS2HH12:
             from machine import I2C
             self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
 
-        self.reg = bytearray(1)
         self.odr = 0
         self.full_scale = 0
         self.x = 0
@@ -68,9 +67,7 @@ class LIS2HH12:
         self.set_full_scale(FULL_SCALE_4G)
 
         # set the interrupt pin as active low and open drain
-        self.i2c.readfrom_mem_into(ACC_I2CADDR , CTRL5_REG, self.reg)
-        self.reg[0] |= 0b00000011
-        self.i2c.writeto_mem(ACC_I2CADDR , CTRL5_REG, self.reg)
+        self.set_register(CTRL5_REG, 3, 0, 3)
 
         # make a first read
         self.acceleration()
@@ -95,34 +92,59 @@ class LIS2HH12:
         rad = -math.atan2(y, (math.sqrt(x*x + z*z)))
         return (180 / math.pi) * rad
 
+    def set_register(self, register, value, offset, mask):
+        reg = bytearray(self.i2c.readfrom_mem(ACC_I2CADDR, register, 1))
+        reg[0] &= ~(mask << offset)
+        reg[0] |= ((value & mask) << offset)
+        self.i2c.writeto_mem(ACC_I2CADDR, register, reg)
+
     def set_full_scale(self, scale):
-        self.i2c.readfrom_mem_into(ACC_I2CADDR , CTRL4_REG, self.reg)
-        self.reg[0] &= ~0b00110000
-        self.reg[0] |= (scale & 3) << 4
-        self.i2c.writeto_mem(ACC_I2CADDR , CTRL4_REG, self.reg)
+        self.set_register(CTRL4_REG, scale, 4, 3)
         self.full_scale = scale
 
     def set_odr(self, odr):
-        self.i2c.readfrom_mem_into(ACC_I2CADDR , CTRL1_REG, self.reg)
-        self.reg[0] &= ~0b01110000
-        self.reg[0] |= (odr & 7) << 4
-        self.i2c.writeto_mem(ACC_I2CADDR , CTRL1_REG, self.reg)
+        self.set_register(CTRL1_REG, odr, 4, 7)
         self.odr = odr
+
+    def set_high_pass(self, hp):
+        self.set_register(CTRL2_REG, 1 if hp else 0, 2, 1)
 
     def enable_activity_interrupt(self, threshold, duration, handler=None):
         # Threshold is in mg, duration is ms
         self.act_dur = duration
 
-        _ths = int((threshold * self.scales[self.full_scale]) / 2000 / 128) & 0x7F
+        if threshold > self.scales[self.full_scale]:
+            error = "threshold %d exceeds full scale %d" % (thresold, self.scales[self.full_scale])
+            print(error)
+            raise ValueError(error)
+
+        if threshold < self.scales[self.full_scale] / 128:
+            error = "threshold %d below resolution %d" % (thresold, self.scales[self.full_scale]/128)
+            print(error)
+            raise ValueError(error)
+
+        if duration > 255 * 1000 * 8 / self.odrs[self.odr]:
+            error = "duration %d exceeds max possible value %d" % (duration, 255 * 1000 * 8 / self.odrs[self.odr])
+            print(error)
+            raise ValueError(error)
+
+        if duration < 1000 * 8 / self.odrs[self.odr]:
+            error = "duration %d below resolution %d" % (duration, 1000 * 8 / self.odrs[self.odr])
+            print(error)
+            raise ValueError(error)
+
+        _ths = int(127 * threshold / self.scales[self.full_scale]) & 0x7F
         _dur = int((duration * self.odrs[self.odr]) / 1000 / 8)
+
+        # Useful for debug
+        print("actual threshold: %d (%d)" % (_ths * self.scales[self.full_scale] / 128, _ths))
+        print("actual duration: %d (%d)" % (_dur * 8 * 1000 / self.odrs[self.odr], _dur))
 
         self.i2c.writeto_mem(ACC_I2CADDR , ACT_THS, _ths)
         self.i2c.writeto_mem(ACC_I2CADDR , ACT_DUR, _dur)
 
         # enable the activity/inactivity interrupt
-        self.i2c.readfrom_mem_into(ACC_I2CADDR , CTRL3_REG, self.reg)
-        self.reg[0] |= 0b00100000
-        self.i2c.writeto_mem(ACC_I2CADDR , CTRL3_REG, self.reg)
+        self.set_register(CTRL3_REG, 1, 5, 1)
 
         self._user_handler = handler
         self.int_pin = Pin('P13', mode=Pin.IN)
