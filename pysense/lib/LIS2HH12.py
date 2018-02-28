@@ -137,10 +137,6 @@ class LIS2HH12:
         _ths = int(127 * threshold / self.SCALES[self.full_scale]) & 0x7F
         _dur = int((duration * self.ODRS[self.odr]) / 1000 / 8)
 
-        # Useful for debug
-        print("actual threshold: %d (%d)" % (_ths * self.SCALES[self.full_scale] / 128, _ths))
-        print("actual duration: %d (%d)" % (_dur * 8 * 1000 / self.ODRS[self.odr], _dur))
-
         self.i2c.writeto_mem(ACC_I2CADDR, ACT_THS, _ths)
         self.i2c.writeto_mem(ACC_I2CADDR, ACT_DUR, _dur)
 
@@ -150,6 +146,9 @@ class LIS2HH12:
         self._user_handler = handler
         self.int_pin = Pin('P13', mode=Pin.IN)
         self.int_pin.callback(trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, handler=self._int_handler)
+
+        # return actual used thresold and duration
+        return (_ths * self.SCALES[self.full_scale] / 128, _dur * 8 * 1000 / self.ODRS[self.odr])
 
     def activity(self):
         if not self.debounced:
