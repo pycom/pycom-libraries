@@ -340,13 +340,13 @@ class NanoGateway:
             coding_rate=LoRa.CODING_4_5,
             tx_iq=True
             )
-        while utime.ticks_us() < tmst:
+        while utime.ticks_diff(utime.ticks_us(), tmst) > 0:
             pass
         self.lora_sock.send(data)
         self._log(
-            'Sent downlink packet scheduled on {:.3f}, at {:.3f} Mhz using {}: {}',
+            'Sent downlink packet scheduled on {:.3f}, at {:,d} Hz using {}: {}',
             tmst / 1000000,
-            self._freq_to_float(frequency),
+            frequency,
             datarate,
             data
         )
@@ -369,16 +369,14 @@ class NanoGateway:
                     self.dwnb += 1
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
-                    tmst = tx_pk["txpk"]["tmst"]
-                    t_us = tmst - utime.ticks_us() - 15000
-                    if t_us < 0:
-                        t_us += 0xFFFFFFFF
-                    if t_us < 20000000:
+                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], - 8000) # pull 8 ms upfront
+                    t_us = utime.ticks_diff(utime.ticks_us(), utime.ticks_add(tmst, - 15000))
+                    if 1000 < t_us < 10000000:
                         self.uplink_alarm = Timer.Alarm(
                             handler=lambda x: self._send_down_link(
                                 ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
-                                tx_pk["txpk"]["tmst"] - 50, tx_pk["txpk"]["datr"],
-                                int(tx_pk["txpk"]["freq"] * 1000) * 1000
+                                tmst, tx_pk["txpk"]["datr"],
+                                int(tx_pk["txpk"]["freq"] * 1000 + 0.0005) * 1000
                             ), 
                             us=t_us
                         )
