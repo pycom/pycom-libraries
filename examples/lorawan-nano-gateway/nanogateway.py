@@ -8,6 +8,7 @@ import uos
 import usocket
 import utime
 import _thread
+import gc
 from micropython import const
 from network import LoRa
 from network import WLAN
@@ -357,6 +358,7 @@ class NanoGateway:
         """
 
         while not self.udp_stop:
+            gc.collect()
             try:
                 data, src = self.sock.recvfrom(1024)
                 _token = data[1:3]
@@ -369,8 +371,8 @@ class NanoGateway:
                     self.dwnb += 1
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
-                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], - 8000) # pull 8 ms upfront
-                    t_us = utime.ticks_diff(utime.ticks_us(), utime.ticks_add(tmst, - 15000))
+                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], -4000) # pull 4 ms upfront
+                    t_us = utime.ticks_diff(utime.ticks_us(), utime.ticks_add(tmst, -15000))
                     if 1000 < t_us < 10000000:
                         self.uplink_alarm = Timer.Alarm(
                             handler=lambda x: self._send_down_link(
