@@ -13,6 +13,7 @@ from micropython import const
 from network import LoRa
 from network import WLAN
 from machine import Timer
+from machine import WDT
 
 
 PROTOCOL_VERSION = const(2)
@@ -33,6 +34,8 @@ TX_ERR_TX_POWER = 'TX_POWER'
 TX_ERR_GPS_UNLOCKED = 'GPS_UNLOCKED'
 
 UDP_THREAD_CYCLE_MS = const(10)
+WDT_TIMEOUT = const(120000)
+WINDOW_COMPENSATION = const(-4000)
 
 STAT_PK = {
     'stat': {
@@ -161,6 +164,7 @@ class NanoGateway:
         self._log('Setting up the LoRa radio at {} Mhz using {}', self._freq_to_float(self.frequency), self.datarate)
         self.lora = LoRa(
             mode=LoRa.LORA,
+            region=LoRa.EU868,
             frequency=self.frequency,
             bandwidth=self.bw,
             sf=self.sf,
@@ -175,6 +179,7 @@ class NanoGateway:
         self.lora_tx_done = False
 
         self.lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=self._lora_cb)
+        self.wdt = WDT(timeout=WDT_TIMEOUT)
         self._log('LoRaWAN nano gateway online')
 
     def stop(self):
@@ -253,6 +258,7 @@ class NanoGateway:
             self.txnb += 1
             lora.init(
                 mode=LoRa.LORA,
+                region=LoRa.EU868,
                 frequency=self.frequency,
                 bandwidth=self.bw,
                 sf=self.sf,
@@ -334,6 +340,7 @@ class NanoGateway:
 
         self.lora.init(
             mode=LoRa.LORA,
+            region=LoRa.EU868,
             frequency=frequency,
             bandwidth=self._dr_to_bw(datarate),
             sf=self._dr_to_sf(datarate),
@@ -341,8 +348,10 @@ class NanoGateway:
             coding_rate=LoRa.CODING_4_5,
             tx_iq=True
             )
+        tmst = utime.ticks_add(tmst, -500) # pull upfront because of sleep_ms(1)
         while utime.ticks_diff(utime.ticks_us(), tmst) > 0:
-            pass
+            utime.sleep_ms(1)
+            #pass
         self.lora_sock.send(data)
         self._log(
             'Sent downlink packet scheduled on {:.3f}, at {:,d} Hz using {}: {}',
@@ -359,6 +368,7 @@ class NanoGateway:
 
         while not self.udp_stop:
             gc.collect()
+            self.wdt.feed()
             try:
                 data, src = self.sock.recvfrom(1024)
                 _token = data[1:3]
@@ -371,7 +381,7 @@ class NanoGateway:
                     self.dwnb += 1
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
-                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], -4000) # pull 4 ms upfront
+                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], WINDOW_COMPENSATION) # pull 4 ms upfront
                     t_us = utime.ticks_diff(utime.ticks_us(), utime.ticks_add(tmst, -15000))
                     if 1000 < t_us < 10000000:
                         self.uplink_alarm = Timer.Alarm(
