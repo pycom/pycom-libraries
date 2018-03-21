@@ -15,7 +15,6 @@ from network import WLAN
 from machine import Timer
 from machine import WDT
 
-
 PROTOCOL_VERSION = const(2)
 
 PUSH_DATA = const(0)
@@ -35,7 +34,8 @@ TX_ERR_GPS_UNLOCKED = 'GPS_UNLOCKED'
 
 UDP_THREAD_CYCLE_MS = const(10)
 WDT_TIMEOUT = const(120000)
-WINDOW_COMPENSATION = const(-10000)
+COMPENSATION_SLOPE = const(-4176)
+COMPENSATION_OFFSET = const(-1667)
 
 STAT_PK = {
     'stat': {
@@ -380,12 +380,14 @@ class NanoGateway:
                     self.dwnb += 1
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
-                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], WINDOW_COMPENSATION) # pull 4 ms upfront
+                    payload = ubinascii.a2b_base64(tx_pk["txpk"]["data"])
+                    compensation = ((len(payload) + 15) // 16) * COMPENSATION_SLOPE + COMPENSATION_OFFSET
+                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], compensation) # pull upfront
                     t_us = utime.ticks_diff(utime.ticks_cpu(), utime.ticks_add(tmst, -15000))
                     if 1000 < t_us < 10000000:
                         self.uplink_alarm = Timer.Alarm(
                             handler=lambda x: self._send_down_link(
-                                ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
+                                payload,
                                 tmst, tx_pk["txpk"]["datr"],
                                 int(tx_pk["txpk"]["freq"] * 1000 + 0.0005) * 1000
                             ),
