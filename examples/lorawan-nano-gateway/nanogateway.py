@@ -35,7 +35,7 @@ TX_ERR_GPS_UNLOCKED = 'GPS_UNLOCKED'
 
 UDP_THREAD_CYCLE_MS = const(10)
 WDT_TIMEOUT = const(120000)
-WINDOW_COMPENSATION = const(-4000)
+WINDOW_COMPENSATION = const(-10000)
 
 STAT_PK = {
     'stat': {
@@ -349,9 +349,8 @@ class NanoGateway:
             tx_iq=True
             )
         tmst = utime.ticks_add(tmst, -500) # pull upfront because of sleep_ms(1)
-        while utime.ticks_diff(utime.ticks_us(), tmst) > 0:
-            utime.sleep_ms(1)
-            #pass
+        while utime.ticks_diff(utime.ticks_cpu(), tmst) > 0:
+            pass
         self.lora_sock.send(data)
         self._log(
             'Sent downlink packet scheduled on {:.3f}, at {:,d} Hz using {}: {}',
@@ -382,14 +381,14 @@ class NanoGateway:
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
                     tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], WINDOW_COMPENSATION) # pull 4 ms upfront
-                    t_us = utime.ticks_diff(utime.ticks_us(), utime.ticks_add(tmst, -15000))
+                    t_us = utime.ticks_diff(utime.ticks_cpu(), utime.ticks_add(tmst, -15000))
                     if 1000 < t_us < 10000000:
                         self.uplink_alarm = Timer.Alarm(
                             handler=lambda x: self._send_down_link(
                                 ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
                                 tmst, tx_pk["txpk"]["datr"],
                                 int(tx_pk["txpk"]["freq"] * 1000 + 0.0005) * 1000
-                            ), 
+                            ),
                             us=t_us
                         )
                     else:
