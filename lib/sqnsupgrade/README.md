@@ -73,6 +73,31 @@ LR6.0.0.0-35351
 
 At the moment the NB-IoT firmware supplied by Sequans only support Ericsson base stations configured for In-Band mode. Standalone and guard-band modes will be supported in a later release. Support for Huawei base stations is also limmited and only lab testing with Huawei eNodeB is recommended at the moment. Full support for Huawei is planned for early Q2 2018.
 
+# NB-IoT usage:
+
+for example with Vodafone:
+
+```python
+from network import LTE
+
+lte = LTE()
+lte.send_at_cmd('AT+CFUN=0')
+lte.send_at_cmd('AT!="clearscanconfig"')
+lte.send_at_cmd('AT!="addscanfreq band=20 dl-earfcn=6300")
+lte.send_at_cmd('AT!="zsp0:npc 1")
+lte.send_at_cmd('AT+CGDCONT=1,"IP","nb.inetd.gdsp")
+lte.send_at_cmd('AT+CFUN=1)
+
+while not lte.isattached():
+    pass
+
+lte.connect()
+while not lte.isconnected():
+    pass
+
+# now use socket as usual...
+```
+
 ## SQN3330 Firmware download link
 
 https://software.pycom.io/downloads/sequans.html
