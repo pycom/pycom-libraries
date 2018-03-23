@@ -83,10 +83,10 @@ from network import LTE
 lte = LTE()
 lte.send_at_cmd('AT+CFUN=0')
 lte.send_at_cmd('AT!="clearscanconfig"')
-lte.send_at_cmd('AT!="addscanfreq band=20 dl-earfcn=6300")
-lte.send_at_cmd('AT!="zsp0:npc 1")
-lte.send_at_cmd('AT+CGDCONT=1,"IP","nb.inetd.gdsp")
-lte.send_at_cmd('AT+CFUN=1)
+lte.send_at_cmd('AT!="addscanfreq band=20 dl-earfcn=6300"')
+lte.send_at_cmd('AT!="zsp0:npc 1"')
+lte.send_at_cmd('AT+CGDCONT=1,"IP","nb.inetd.gdsp"')
+lte.send_at_cmd('AT+CFUN=1')
 
 while not lte.isattached():
     pass
