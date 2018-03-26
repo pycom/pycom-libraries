@@ -16,9 +16,9 @@ import config
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.US915)
 
 # create an OTA authentication params
-dev_eui = binascii.unhexlify('AA BB CC DD EE FF 77 78'.replace(' ',''))
-app_eui = binascii.unhexlify('70 B3 D5 7E F0 00 3B FD'.replace(' ',''))
-app_key = binascii.unhexlify('36 AB 76 25 FE 77 0B 68 81 68 3B 49 53 00 FF D6'.replace(' ',''))
+dev_eui = binascii.unhexlify('AABBCCDDEEFF7778')
+app_eui = binascii.unhexlify('70B3D57EF0003BFD')
+app_key = binascii.unhexlify('36AB7625FE770B6881683B495300FFD6')
 
 # remove all the channels
 for channel in range(0, 72):
@@ -33,14 +33,14 @@ lora.join(activation=LoRa.OTAA, auth=(dev_eui, app_eui, app_key), timeout=0, dr=
 
 # wait until the module has joined the network
 join_wait = 0
-while True: 
+while True:
     time.sleep(2.5)
     if not lora.has_joined():
         print('Not joined yet...')
         join_wait += 1
         if join_wait == 5:
             lora.join(activation=LoRa.OTAA, auth=(dev_eui, app_eui, app_key), timeout=0, dr=config.LORA_NODE_DR)
-            join_wait = 0            
+            join_wait = 0
     else:
         break
 

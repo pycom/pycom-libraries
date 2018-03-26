@@ -16,9 +16,9 @@ import config
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 
 # create an OTA authentication params
-dev_eui = binascii.unhexlify('AA BB CC DD EE FF 77 78'.replace(' ',''))
-app_eui = binascii.unhexlify('70 B3 D5 7E F0 00 3B FD'.replace(' ',''))
-app_key = binascii.unhexlify('36 AB 76 25 FE 77 0B 68 81 68 3B 49 53 00 FF D6'.replace(' ',''))
+dev_eui = binascii.unhexlify('AABBCCDDEEFF7778')
+app_eui = binascii.unhexlify('70B3D57EF0003BFD')
+app_key = binascii.unhexlify('36AB7625FE770B6881683B495300FFD6')
 
 # set the 3 default channels to the same frequency (must be before sending the OTAA join request)
 lora.add_channel(0, frequency=config.LORA_FREQUENCY, dr_min=0, dr_max=5)
