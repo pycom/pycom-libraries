@@ -34,8 +34,6 @@ TX_ERR_GPS_UNLOCKED = 'GPS_UNLOCKED'
 
 UDP_THREAD_CYCLE_MS = const(10)
 WDT_TIMEOUT = const(120000)
-COMPENSATION_SLOPE = const(-4176)
-COMPENSATION_OFFSET = const(-1667)
 
 STAT_PK = {
     'stat': {
@@ -179,7 +177,6 @@ class NanoGateway:
         self.lora_tx_done = False
 
         self.lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=self._lora_cb)
-        self.wdt = WDT(timeout=WDT_TIMEOUT)
         self._log('LoRaWAN nano gateway online')
 
     def stop(self):
@@ -348,10 +345,11 @@ class NanoGateway:
             coding_rate=LoRa.CODING_4_5,
             tx_iq=True
             )
-        tmst = utime.ticks_add(tmst, -500) # pull upfront because of sleep_ms(1)
         while utime.ticks_diff(utime.ticks_cpu(), tmst) > 0:
             pass
+        self.lora_sock.settimeout(1)
         self.lora_sock.send(data)
+        self.lora_sock.setblocking(False)
         self._log(
             'Sent downlink packet scheduled on {:.3f}, at {:,d} Hz using {}: {}',
             tmst / 1000000,
@@ -367,7 +365,6 @@ class NanoGateway:
 
         while not self.udp_stop:
             gc.collect()
-            self.wdt.feed()
             try:
                 data, src = self.sock.recvfrom(1024)
                 _token = data[1:3]
@@ -381,8 +378,7 @@ class NanoGateway:
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
                     payload = ubinascii.a2b_base64(tx_pk["txpk"]["data"])
-                    compensation = ((len(payload) + 15) // 16) * COMPENSATION_SLOPE + COMPENSATION_OFFSET
-                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], compensation) # pull upfront
+                    tmst = utime.ticks_add(tx_pk["txpk"]["tmst"], -800) # pull upront 800 us
                     t_us = utime.ticks_diff(utime.ticks_cpu(), utime.ticks_add(tmst, -15000))
                     if 1000 < t_us < 10000000:
                         self.uplink_alarm = Timer.Alarm(
