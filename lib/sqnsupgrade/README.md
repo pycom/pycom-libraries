@@ -8,14 +8,25 @@ micro SD card first so that the ESP32 can access it easily. In the next few days
 
 ## Usage
 
-Download the firmware file via the link and the bottom (read the important note first about upgrading NB-IoT), please the firmware in a FAT32 formatted microSD card. Then insert the SD card in one in a expansion board, pytrack or pysense. Power-up the system, upload the libraries to the module and after that run the piece of code below:
+### Using a SD card
+
+Download the firmware file via the link and the bottom. Place the firmware in a FAT32 formatted microSD card. Then insert the SD card in one in a expansion board, pytrack or pysense. Power-up the system, upload the libraries to the module and after that run the piece of code below:
 
 ```python
 import sqnsupgrade
 sqnsupgrade.run(path_to_firmware, 921600)   # path_to_firmware example: '/sd/FIPY_NB1_35351.dup'
 ```
 
-The whole process can take between 2 and 3 minutes and at some points it will seem to stall, this is normal, just be patience.
+### Streaming the firmware on a PC via the serial port used for the REPL
+
+Download the firmware file via the link and the bottom. Run the **uartmirror.py** script on the device. This will alow the PC to control the cellular modem directly bypassing the ESP32. Then open a Python 3 terminal on the PC (make sure Pyserial is installed) and run:
+
+```python
+import sqnsupgrade
+sqnsupgrade.run(path_to_firmware, 921600, port=serial_port) # path_to_firmware example: '/sd/FIPY_NB1_35351.dup, serial port example: '/dev/tty.usbmodemPy2e5401'
+```
+
+The whole process can take between 2 and 3 minutes and at some points it will seem to stall, this is normal, just have a little patience.
 
 You should see an output like this:
 
@@ -42,8 +53,6 @@ OK
 ```
 
 ## IMPORTANT:
-
-If your module is running the factory LTE chip firmware, you **MUST** first perform an update to the latest CAT-M1 firmware before trying to upgrade to the NB-IoT firmware. Skipping this step will cause your radio to become unresponsive and it will require access to the test points in order to reflash the firmware.
 
 DO NOT disconnect power while the upgrade process is taking place, wait for it to finish!.
 
