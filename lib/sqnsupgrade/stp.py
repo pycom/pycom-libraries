@@ -3,8 +3,8 @@
 import struct
 import time
 import os
-from machine import UART
 
+sysname = os.uname().sysname
 
 # CRC-16(CCIT)
 def crc16(s):
@@ -69,18 +69,12 @@ class MException(BaseException):
         return self.s
 
 class SerialDev(object):
-    def __init__(self, serial, baud, timeout=None):
+    def __init__(self, serial, baud, timeout=90000):    # 90 seconds timeout
         self.serial = serial
-
-        if 'FiPy' in os.uname().sysname:
-            pins = ('P20', 'P18', 'P19', 'P17')
-        else:
-            pins = ('P5', 'P98', 'P7', 'P99')
-
-        self.serial.init(baudrate=baud, pins=pins, timeout_chars=100)
-        self.timeout = 90000    # 90 seconds
+        self.timeout = timeout
 
     def read(self, n):
+        global sysname
         _n = n
         t = self.timeout
         r = b''
@@ -91,8 +85,11 @@ class SerialDev(object):
                 if len(r) == n:
                     break
                 _n -= len(c)
-            time.sleep_ms(5)
-            t -= 5
+            if 'FiPy' in sysname or 'GPy' in sysname:
+                time.sleep_ms(2)
+            else:
+                time.sleep(0.002)
+            t -= 2
         return r
 
     def write(self, s):
@@ -250,6 +247,8 @@ class Master:
 
 
     def send_data(self, blobfile, filesize, trials=4):
+        global sysname
+
         class Trial:
             def __init__(self, trials):
                 self.trials = trials
@@ -267,7 +266,10 @@ class Master:
         downloaded = 0
 
         while True:
-            data = blobfile.read(1536)
+            if 'FiPy' in sysname or 'GPy' in sysname:
+                data = blobfile.read(1536)
+            else:
+                data = blobfile.read(512)
             size = len(data)
             if size:
                 while size:
@@ -365,10 +367,10 @@ def start(elf, elfsize, serial, baud=3686400, retry=None, debug=None, AT=True):
         flush_data = dev.read(256)
         dev.serial.timeout = 1
 
-        ok_msg = "OK\r\n"
+        ok_msg = b"OK\r\n"
         print("Starting AT negociation")
 
-        dev.write("AT\n")
+        dev.write(b"AT\n")
         data = dev.read(len(ok_msg))
         if data != ok_msg:
             print("Remote didn't answered to AT command")
@@ -377,7 +379,7 @@ def start(elf, elfsize, serial, baud=3686400, retry=None, debug=None, AT=True):
             return
 
         print("Setting baudrate %d"%baud)
-        dev.write("AT+IPR=%d\n"%baud)
+        dev.write(b"AT+IPR=%d\n"%baud)
         data = dev.read(len(ok_msg))
         if data != ok_msg:
             print("Remote failed to set baudrate")
@@ -388,7 +390,7 @@ def start(elf, elfsize, serial, baud=3686400, retry=None, debug=None, AT=True):
 
         time.sleep(0.1)
         print("Starting STP")
-        dev.write("AT+STP\n")
+        dev.write(b"AT+STP\n")
         data = dev.read(len(ok_msg))
         if data != ok_msg:
             print("Remote failed to start STP")

@@ -4,9 +4,14 @@ import crc
 import stp
 import time
 import os
-from machine import UART
-from machine import SD
 
+sysname = os.uname().sysname
+
+if 'FiPy' in sysname or 'GPy' in sysname:
+    from machine import UART
+    from machine import SD
+else:   # this is a computer
+    import serial
 
 FFF_FMT = "<4sIIIIIIIHHIHHIHHHH"
 FFF_SLIM_FMT = "<4sIIIIIIIHHHH"
@@ -26,9 +31,14 @@ def read_rsp(s, size=None, timeout=-1):
         timeout = 20000
     elif timeout is None:
         timeout = 0
-    while not s.any() and timeout > 0:
-        time.sleep_ms(1)
-        timeout -= 1
+    if 'FiPy' in sysname or 'GPy' in sysname:
+        while not s.any() and timeout > 0:
+            time.sleep_ms(1)
+            timeout -= 1
+    else:
+        while s.in_waiting <= 0 and timeout > 0:
+            time.sleep(0.001)
+            timeout -= 1
 
     if size is not None:
         rsp = s.read(size)
@@ -47,10 +57,13 @@ def print_pretty_response(rsp):
 
 
 def wait_for_modem(s, send=True, expected=b'OK'):
+    rsp = b''
     while True:
         if send:
-            s.write("AT\r\n")
-        rsp = read_rsp(s, timeout=50)
+            s.write(b"AT\r\n")
+        r = read_rsp(s, size=(len(expected) + 4), timeout=50)
+        if r:
+            rsp += r
         if expected in rsp:
             print()
             break
@@ -58,43 +71,54 @@ def wait_for_modem(s, send=True, expected=b'OK'):
             print('.', end='', flush=True)
             time.sleep(0.5)
 
-def run(file_path, baudrate):
+def run(file_path, baudrate, port=None):
+    global sysname
+
     abort = False
+    s = None
 
     print('<<< Welcome to the SQN3330 firmware updater >>>')
 
-    if '/sd' in file_path:
-        sd = SD()
-        time.sleep(0.5)
-        os.mount(sd, '/sd')
-        time.sleep(0.5)
+    if 'FiPy' in sysname or 'GPy' in sysname:
+        if '/sd' in file_path and not 'sd' in os.listdir('/'):
+            sd = SD()
+            time.sleep(0.5)
+            os.mount(sd, '/sd')
+            time.sleep(0.5)
+
+        if 'GPy' in sysname:
+            pins = ('P5', 'P98', 'P7', 'P99')
+        else:
+            pins = ('P20', 'P18', 'P19', 'P17')
+
+        s = UART(1, baudrate=baudrate, pins=pins, timeout_chars=100)
+        s.read()
+    else:
+        if port is None:
+            raise ValueError('serial port not specified')
+        s = serial.Serial(port, baudrate=921600, bytesize=serial.EIGHTBITS, timeout=0.1)
+        s.reset_input_buffer()
+        s.reset_output_buffer()
 
     blobsize = os.stat(file_path)[6]
     blob = open(file_path, "rb")
 
-    if 'FiPy' in os.uname().sysname:
-        pins = ('P20', 'P18', 'P19', 'P17')
-    else:
-        pins = ('P5', 'P98', 'P7', 'P99')
-
-    s = UART(1, baudrate=baudrate, pins=pins, timeout_chars=100)
-    s.read()
-
     # disable echo
-    s.write("ATE0\r\n")
-    response = read_rsp(s)
+    s.write(b"ATE0\r\n")
+    response = read_rsp(s, size=6)
 
+    s.read(100)
     print('Entering recovery mode')
-    s.write("AT+SMSWBOOT=3,0\r\n")
-    response = read_rsp(s)
+    s.write(b"AT+SMSWBOOT=3,0\r\n")
+    response = read_rsp(s, size=6)
     if b'OK' in response:
         print('Resetting.', end='', flush=True)
-        s.write('AT^RESET\r\n')
+        s.write(b'AT^RESET\r\n')
         wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
         time.sleep(2)
         wait_for_modem(s)
-        s.write("AT\r\n")
-        s.write("AT\r\n")
+        s.write(b"AT\r\n")
+        s.write(b"AT\r\n")
     else:
         raise OSError('AT+SMSWBOOT=3,0 failed!')
 
@@ -102,7 +126,8 @@ def run(file_path, baudrate):
     s.read()
 
     print('Starting STP (DO NOT DISCONNECT POWER!!!)')
-    s.write('AT+SMSTPU=\"ON_THE_FLY\"\r\n')
+    s.read(100)
+    s.write(b'AT+SMSTPU=\"ON_THE_FLY\"\r\n')
     response = read_rsp(s, size=4)
     if response != b'OK\r\n' and response != b'\r\nOK' and response != b'\nOK':
         raise OSError("Invalid answer '%s' from the device" % response)
@@ -118,12 +143,12 @@ def run(file_path, baudrate):
 
     time.sleep(1.5)
     s.read()
-    s.write("AT+SMSWBOOT=1,0\r\n")
-    response = read_rsp(s)
+    s.write(b"AT+SMSWBOOT=1,0\r\n")
+    response = read_rsp(s, size=6)
 
     print('Resetting (DO NOT DISCONNECT POWER!!!).', end='', flush=True)
     time.sleep(1.5)
-    s.write("AT^RESET\r\n")
+    s.write(b"AT^RESET\r\n")
     wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
     time.sleep(2)
     wait_for_modem(s, send=False, expected=b'+SYSSTART')
@@ -131,23 +156,23 @@ def run(file_path, baudrate):
     if not abort:
         time.sleep(0.5)
         print('Deploying the upgrade (DO NOT DISCONNECT POWER!!!)...')
-        s.write("AT+SMUPGRADE\r\n")
-        response = read_rsp(s, timeout=120000)
+        s.write(b"AT+SMUPGRADE\r\n")
+        response = read_rsp(s, size=6, timeout=120000)
 
         print('Resetting (DO NOT DISCONNECT POWER!!!).', end='', flush=True)
         time.sleep(1.5)
-        s.write("AT^RESET\r\n")
+        s.write(b"AT^RESET\r\n")
         wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
         time.sleep(2)
         wait_for_modem(s, send=False, expected=b'+SYSSTART')
-        s.write("AT\r\n")
-        s.write("AT\r\n")
+        s.write(b"AT\r\n")
+        s.write(b"AT\r\n")
         time.sleep(0.5)
         s.read()
         print('Upgrade completed!')
         print("Here's the current firmware version:")
         time.sleep(0.5)
         s.read()
-        s.write("ATI1\r\n")
-        response = read_rsp(s)
+        s.write(b"ATI1\r\n")
+        response = read_rsp(s, size=100)
         print_pretty_response(response)
