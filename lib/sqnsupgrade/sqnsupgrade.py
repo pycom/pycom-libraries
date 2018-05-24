@@ -5,7 +5,10 @@ import stp
 import time
 import os
 
-sysname = os.uname().sysname
+try:
+    sysname = os.uname().sysname
+except:
+    sysname = 'Windows'
 
 if 'FiPy' in sysname or 'GPy' in sysname:
     from machine import UART

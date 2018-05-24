@@ -4,7 +4,10 @@ import struct
 import time
 import os
 
-sysname = os.uname().sysname
+try:
+    sysname = os.uname().sysname
+except:
+    sysname = 'Windows'
 
 # CRC-16(CCIT)
 def crc16(s):
