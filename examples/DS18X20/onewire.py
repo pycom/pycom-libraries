@@ -16,6 +16,13 @@ class OneWire:
     def __init__(self, pin):
         self.pin = pin
         self.pin.init(pin.OPEN_DRAIN, pin.PULL_UP)
+        self.disable_irq = machine.disable_irq
+        self.enable_irq = machine.enable_irq
+        self.crctab1 = (b"\x00\x5E\xBC\xE2\x61\x3F\xDD\x83"
+                        b"\xC2\x9C\x7E\x20\xA3\xFD\x1F\x41")
+        self.crctab2 = (b"\x00\x9D\x23\xBE\x46\xDB\x65\xF8"
+                        b"\x8C\x11\xAF\x32\xCA\x57\xE9\x74")
+
 
     def reset(self):
         """
@@ -23,33 +30,30 @@ class OneWire:
         Returns True if a device asserted a presence pulse, False otherwise.
         """
         sleep_us = time.sleep_us
-        disable_irq = machine.disable_irq
-        enable_irq = machine.enable_irq
         pin = self.pin
 
         pin(0)
         sleep_us(480)
-        i = disable_irq()
+        i = self.disable_irq()
         pin(1)
         sleep_us(60)
         status = not pin()
-        enable_irq(i)
+        self.enable_irq(i)
         sleep_us(420)
         return status
 
     def read_bit(self):
         sleep_us = time.sleep_us
-        enable_irq = machine.enable_irq
         pin = self.pin
 
         pin(1) # half of the devices don't match CRC without this line
-        i = machine.disable_irq()
+        i = self.disable_irq()
         pin(0)
-        sleep_us(1)
+        # skip sleep_us(1) here, results in a 2 us pulse.
         pin(1)
-        sleep_us(1)
+        sleep_us(5) # 8 us delay in total
         value = pin()
-        enable_irq(i)
+        self.enable_irq(i)
         sleep_us(40)
         return value
 
@@ -69,14 +73,14 @@ class OneWire:
         sleep_us = time.sleep_us
         pin = self.pin
 
-        i = machine.disable_irq()
+        i = self.disable_irq()
         pin(0)
         sleep_us(1)
         pin(value)
         sleep_us(60)
         pin(1)
         sleep_us(1)
-        machine.enable_irq(i)
+        self.enable_irq(i)
 
     def write_byte(self, value):
         for i in range(8):
@@ -97,19 +101,13 @@ class OneWire:
 
     def crc8(self, data):
         """
-        Compute CRC
+        Compute CRC, based on tables
         """
         crc = 0
         for i in range(len(data)):
-            byte = data[i]
-            for b in range(8):
-                fb_bit = (crc ^ byte) & 0x01
-                if fb_bit == 0x01:
-                    crc = crc ^ 0x18
-                crc = (crc >> 1) & 0x7f
-                if fb_bit == 0x01:
-                    crc = crc | 0x80
-                byte = byte >> 1
+           crc ^= data[i] ## just re-using crc as intermediate
+           crc = (self.crctab1[crc & 0x0f] ^
+                  self.crctab2[(crc >> 4) & 0x0f])
         return crc
 
     def scan(self):
@@ -181,7 +179,7 @@ class DS18X20(object):
         """
         if (rom==None) and (len(self.roms)>0):
             rom=self.roms[0]
-        if rom!=None:    
+        if rom!=None:
             rom = rom or self.roms[0]
             ow = self.ow
             ow.reset()
@@ -197,7 +195,7 @@ class DS18X20(object):
             return None
         if (rom==None) and (len(self.roms)>0):
             rom=self.roms[0]
-        if rom==None:     
+        if rom==None:
             return None
         else:
             ow = self.ow
@@ -205,7 +203,11 @@ class DS18X20(object):
             ow.select_rom(rom)
             ow.write_byte(0xbe)  # Read scratch
             data = ow.read_bytes(9)
-            return self.convert_temp(rom[0], data)
+            crc = ow.crc8(data)
+            if crc == 0:
+                return self.convert_temp(rom[0], data)
+            else:
+                return None
 
     def convert_temp(self, rom0, data):
         """
