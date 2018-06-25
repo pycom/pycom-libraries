@@ -207,8 +207,7 @@ class DS18X20(object):
             ow.select_rom(rom)
             ow.write_byte(0xbe)  # Read scratch
             data = ow.read_bytes(9)
-            crc = ow.crc8(data)
-            if crc == 0:
+            if ow.crc8(data) == 0:
                 return self.convert_temp(rom[0], data)
             else:
                 return None
