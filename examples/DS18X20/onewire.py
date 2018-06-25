@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-
+#
+# The crc8 implementation is a Python port of the C code published here:
+# http://lentz.com.au/blog/tag/crc-table-generator
+# As far as suitable, the copyrigth notice and the disclaimer of the link apply
+#
 """
 OneWire library for MicroPython
 """
