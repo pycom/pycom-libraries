@@ -3,6 +3,7 @@ import time
 import gc
 import binascii
 
+
 class L76GNSS:
 
     GPS_I2CADDR = const(0x10)
@@ -37,45 +38,82 @@ class L76GNSS:
             lon_d *= -1
         return(lat_d, lon_d)
 
-    def coordinates(self, debug=False):
+    def _convert_coords(self, gnrmc_s):
+        lat = gnrmc_s[3]
+        lat_d = (float(lat) // 100) + ((float(lat) % 100) / 60)
+        lon = gnrmc_s[5]
+        lon_d = (float(lon) // 100) + ((float(lon) % 100) / 60)
+        if gnrmc_s[4] == 'S':
+            lat_d *= -1
+        if gnrmc_s[6] == 'W':
+            lon_d *= -1
+        return (lat_d, lon_d)
+
+    def _convert_datetime(self, gnrmc_s):
+        hours = int(float(gnrmc_s[1][:2]))
+        minutes = int(float(gnrmc_s[1][2:4]))
+        seconds = float(gnrmc_s[1][4:])
+
+        day = int(float(gnrmc_s[9][:2]))
+        month = int(float(gnrmc_s[9][2:4]))
+        year = int(float(gnrmc_s[9][4:]))
+
+        return (year, month, day, hours, minutes, seconds)
+
+    def _convert_speed(self, gnrmc_s):
+        return float(gnrmc_s[7]) * 0.514444444 # Convert knotts to m/s by multiplying by 0.514...
+
+    def _convert_course(self, gnrmc_s):
+        return float(gnrmc_s[8])
+
+    def rmc(self, debug=False):
         lat_d, lon_d, debug_timeout = None, None, False
-        if self.timeout != None:
+        if self.timeout is not None:
+            self.chrono.reset()
             self.chrono.start()
         nmea = b''
+        lat_d, lon_d = (None, None)
+        datetime = None
+        speed = None
+        course = None
         while True:
-            if self.timeout != None and self.chrono.read() >= self.timeout:
+            if self.timeout is not None and self.chrono.read() >= self.timeout:
                 self.chrono.stop()
                 chrono_timeout = self.chrono.read()
                 self.chrono.reset()
                 self.timeout_status = False
                 debug_timeout = True
-            if self.timeout_status != True:
+            if not self.timeout_status:
                 gc.collect()
                 break
             nmea += self._read().lstrip(b'\n\n').rstrip(b'\n\n')
-            gngll_idx = nmea.find(b'GNGLL')
-            if gngll_idx >= 0:
-                gngll = nmea[gngll_idx:]
-                e_idx = gngll.find(b'\r\n')
+            gnrmc_idx = nmea.find(b'GNRMC')
+            if gnrmc_idx >= 0:
+                gnrmc = nmea[gnrmc_idx:]
+                e_idx = gnrmc.find(b'\r\n')
                 if e_idx >= 0:
                     try:
-                        gngll = gngll[:e_idx].decode('ascii')
-                        gngll_s = gngll.split(',')
-                        lat_d, lon_d = self._convert_coords(gngll_s)
+                        gnrmc = gnrmc[:e_idx].decode('ascii')
+                        gnrmc_s = gnrmc.split(',')
+                        lat_d, lon_d = self._convert_coords(gnrmc_s)
+                        datetime = self._convert_datetime(gnrmc_s)
+                        speed = self._convert_speed(gnrmc_s)
+                        course = self._convert_course(gnrmc_s)
                     except Exception:
                         pass
                     finally:
-                        nmea = nmea[(gngll_idx + e_idx):]
+                        nmea = nmea[(gnrmc_idx + e_idx):]
                         gc.collect()
                         break
             else:
                 gc.collect()
-                if len(nmea) > 4096:
-                    nmea = b''
+                if len(nmea) > 410: # i suppose it can be safely changed to 82, which is longest NMEA frame
+                    nmea = nmea[-5:] # $GNGL without last L
             time.sleep(0.1)
         self.timeout_status = True
         if debug and debug_timeout:
             print('GPS timed out after %f seconds' % (chrono_timeout))
-            return(None, None)
+            return (None, None, None, None)
         else:
-            return(lat_d, lon_d)
+            return ((lat_d, lon_d), datetime, speed, course)
+
