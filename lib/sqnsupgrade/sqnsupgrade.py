@@ -74,10 +74,10 @@ def wait_for_modem(s, send=True, expected=b'OK'):
             print('.', end='', flush=True)
             time.sleep(0.5)
 
-def run(file_path, baudrate, port=None):
+def run(file_path, baudrate, port=None, resume=False):
     global sysname
 
-    abort = False
+    abort = True
     s = None
 
     print('<<< Welcome to the SQN3330 firmware updater >>>')
@@ -106,24 +106,25 @@ def run(file_path, baudrate, port=None):
     blobsize = os.stat(file_path)[6]
     blob = open(file_path, "rb")
 
-    # disable echo
-    s.write(b"ATE0\r\n")
-    response = read_rsp(s, size=6)
+    if not resume:
+        # disable echo
+        s.write(b"ATE0\r\n")
+        response = read_rsp(s, size=6)
 
-    s.read(100)
-    print('Entering recovery mode')
-    s.write(b"AT+SMSWBOOT=3,0\r\n")
-    response = read_rsp(s, size=6)
-    if b'OK' in response:
-        print('Resetting.', end='', flush=True)
-        s.write(b'AT^RESET\r\n')
-        wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
-        time.sleep(2)
-        wait_for_modem(s)
-        s.write(b"AT\r\n")
-        s.write(b"AT\r\n")
-    else:
-        raise OSError('AT+SMSWBOOT=3,0 failed!')
+        s.read(100)
+        print('Entering recovery mode')
+        s.write(b"AT+SMSWBOOT=3,0\r\n")
+        response = read_rsp(s, size=6)
+        if b'OK' in response:
+            print('Resetting.', end='', flush=True)
+            s.write(b'AT^RESET\r\n')
+            wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
+            time.sleep(2)
+            wait_for_modem(s)
+            s.write(b"AT\r\n")
+            s.write(b"AT\r\n")
+        else:
+            raise OSError('AT+SMSWBOOT=3,0 failed!')
 
     time.sleep(1)
     s.read()
@@ -135,10 +136,12 @@ def run(file_path, baudrate, port=None):
     if response != b'OK\r\n' and response != b'\r\nOK' and response != b'\nOK':
         raise OSError("Invalid answer '%s' from the device" % response)
         blob.close()
+
     s.read()
     try:
         stp.start(blob, blobsize, s, baudrate, AT=False)
         print('Code download done, returning to user mode')
+        abort = False
     except:
         blob.close()
         print('Code download failed, aborting!')
