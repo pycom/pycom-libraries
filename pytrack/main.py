@@ -14,4 +14,4 @@ print(li.roll())
 print(li.pitch())
 print(li.yaw())
 
-print(l76.coordinates())
+print(l76.rmc())
