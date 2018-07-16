@@ -74,7 +74,7 @@ def wait_for_modem(s, send=True, expected=b'OK'):
             print('.', end='', flush=True)
             time.sleep(0.5)
 
-def run(file_path, baudrate, port=None, resume=False):
+def run(file_path, baudrate=921600, port=None, resume=False):
     global sysname
 
     abort = True
@@ -107,10 +107,12 @@ def run(file_path, baudrate, port=None, resume=False):
     blob = open(file_path, "rb")
 
     if not resume:
+        s.write(b"AT\r\n")
+        s.write(b"AT\r\n")
+        s.read(100)
         # disable echo
         s.write(b"ATE0\r\n")
         response = read_rsp(s, size=6)
-
         s.read(100)
         print('Entering recovery mode')
         s.write(b"AT+SMSWBOOT=3,0\r\n")
@@ -124,6 +126,7 @@ def run(file_path, baudrate, port=None, resume=False):
             s.write(b"AT\r\n")
             s.write(b"AT\r\n")
         else:
+            print('AT+SMSWBOOT=3,0 response {}'.format(response))
             raise OSError('AT+SMSWBOOT=3,0 failed!')
 
     time.sleep(1)
@@ -139,31 +142,23 @@ def run(file_path, baudrate, port=None, resume=False):
 
     s.read()
     try:
-        stp.start(blob, blobsize, s, baudrate, AT=False)
-        print('Code download done, returning to user mode')
-        abort = False
+        if stp.start(blob, blobsize, s, baudrate, AT=False):
+            print('Code download done, returning to user mode')
+            abort = False
+        else:
+            blob.close()
+            print('Code download failed, aborting!')
+            abort = True
     except:
         blob.close()
         print('Code download failed, aborting!')
         abort = True
 
-    time.sleep(1.5)
-    s.read()
-    s.write(b"AT+SMSWBOOT=1,0\r\n")
-    response = read_rsp(s, size=6)
-
-    print('Resetting (DO NOT DISCONNECT POWER!!!).', end='', flush=True)
-    time.sleep(1.5)
-    s.write(b"AT^RESET\r\n")
-    wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
-    time.sleep(2)
-    wait_for_modem(s, send=False, expected=b'+SYSSTART')
-
     if not abort:
-        time.sleep(0.5)
-        print('Deploying the upgrade (DO NOT DISCONNECT POWER!!!)...')
-        s.write(b"AT+SMUPGRADE\r\n")
-        response = read_rsp(s, size=6, timeout=120000)
+        time.sleep(1.5)
+        s.read()
+        s.write(b"AT+SMSWBOOT=1,0\r\n")
+        response = read_rsp(s, size=6)
 
         print('Resetting (DO NOT DISCONNECT POWER!!!).', end='', flush=True)
         time.sleep(1.5)
@@ -171,6 +166,7 @@ def run(file_path, baudrate, port=None, resume=False):
         wait_for_modem(s, send=False, expected=b'+SHUTDOWN')
         time.sleep(2)
         wait_for_modem(s, send=False, expected=b'+SYSSTART')
+        time.sleep(1)
         s.write(b"AT\r\n")
         s.write(b"AT\r\n")
         time.sleep(0.5)

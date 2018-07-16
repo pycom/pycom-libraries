@@ -413,8 +413,12 @@ def start(elf, elfsize, serial, baud=3686400, retry=None, debug=None, AT=True):
             push(m)
             dev.set_timeout(2)
             m.reset(True)
+            return True
         except MException as ex:
             print(str(ex))
             if retry:
                 continue
+            else:
+                return False
         break
+    return False
