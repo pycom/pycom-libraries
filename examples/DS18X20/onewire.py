@@ -108,8 +108,8 @@ class OneWire:
         Compute CRC, based on tables
         """
         crc = 0
-        for i in range(len(data)):
-           crc ^= data[i] ## just re-using crc as intermediate
+        for byte in data:
+           crc ^= byte ## just re-using crc as intermediate
            crc = (self.crctab1[crc & 0x0f] ^
                   self.crctab2[(crc >> 4) & 0x0f])
         return crc
