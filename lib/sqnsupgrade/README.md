@@ -19,13 +19,7 @@ sqnsupgrade.run(path_to_firmware)   # path_to_firmware example: '/sd/FIPY_NB1_35
 
 ### Streaming the firmware on a PC via the serial port used for the REPL
 
-To improve the stability of the serial connection, please first update the GPy / FiPy firmware using the following files:
-
-GPy: https://software.pycom.io/downloads/GPy-1.18.0.r1.tar.gz
-
-FiPy: https://software.pycom.io/downloads/FiPy-1.18.0.r1.tar.gz
-
-Use the latest version of the Pycom Firmware Updater and choose Flash from local file in the Communication Window to flash this special firmware.
+To improve the stability of the serial connection, please first update the GPy / FiPy to the latest stable firmware (<b>1.18.0.r1 or newer</b>)
 
 Download the firmware file via the link at the bottom. Run the **uartmirror.py** script on the device. This will allow the PC to control the cellular modem directly bypassing the ESP32. Then open a Python 3 terminal on the PC (make sure Pyserial is installed) and run:
 
