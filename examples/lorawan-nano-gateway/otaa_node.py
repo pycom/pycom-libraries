@@ -2,7 +2,7 @@
 
 from network import LoRa
 import socket
-import binascii
+import ubinascii
 import struct
 import time
 import config
