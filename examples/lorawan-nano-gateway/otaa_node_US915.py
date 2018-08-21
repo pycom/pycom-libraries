@@ -50,7 +50,7 @@ s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 # set the LoRaWAN data rate
 s.setsockopt(socket.SOL_LORA, socket.SO_DR, config.LORA_NODE_DR)
 
-# make the socket blocking
+# make the socket non-blocking
 s.setblocking(False)
 
 time.sleep(5.0)
