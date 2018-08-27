@@ -173,7 +173,7 @@ class WiFiOTA(OTA):
         req = bytes(req_fmt.format(path, host), 'utf8')
         return req
 
-    def getSocket(self, host, port=80):
+    def get_socket(self, host, port=80):
         ai = socket.getaddrinfo(host, port)
         addr = ai[0][4]
         s = socket.socket()
@@ -189,7 +189,7 @@ class WiFiOTA(OTA):
         print("Requesting: {}".format(req))
 
         # open a new socket
-        s = self.getSocket(self.host, self.port)
+        s = self.get_socket(self.host, self.port)
 
         # Request File
         s.sendall(self._http_get(req, "{}:{}".format(self.host, self.port)))
