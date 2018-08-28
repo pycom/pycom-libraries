@@ -1,0 +1,10 @@
+import sqnsupgrade, time
+sqnsupgrade.version()
+time.sleep(10)
+sqnsupgrade.run('/sd/CATM1-38638.dup','/sd/updater.elf')
+time.sleep(10)
+sqnsupgrade.run('/sd/NB1-37781.dup','/sd/updater.elf')
+time.sleep(10)
+sqnsupgrade.run('/sd/CATM1-38638.dup')
+time.sleep(10)
+sqnsupgrade.run('/sd/NB1-37781.dup')
