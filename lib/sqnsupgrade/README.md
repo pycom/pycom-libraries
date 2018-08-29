@@ -12,7 +12,7 @@ Please start with the following steps:
 
 	1- Upgrade the Pycom Firmware Updater tool to latest version
 
-	2- Select Firmware Type Stable in the communcation window to upgrade to version v1.18.1
+	2- Select Firmware Type Stable in the communcation window to upgrade to version v1.18.1.r1
 	
 
 You can find the different versions of firmwares available here:
