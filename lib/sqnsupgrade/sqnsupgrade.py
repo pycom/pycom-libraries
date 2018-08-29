@@ -165,7 +165,10 @@ class sqnsupgrade:
                 s.write(b"AT+SMOD?\r\n")
                 time.sleep_ms(delay)
                 resp = s.read()
-                return self.return_code(resp)
+                try:
+                    return self.return_code(resp)
+                except:
+                    continue
             else:
                 s = UART(1, baudrate=115200, pins=pins, timeout_chars=10)
                 s.write(b"AT\r\n")
@@ -178,7 +181,10 @@ class sqnsupgrade:
                     s.write(b"AT+SMOD?\r\n")
                     time.sleep_ms(delay)
                     resp = s.read()
-                    return self.return_code(resp)
+                    try:
+                        return self.return_code(resp)
+                    except:
+                        continue
 
 
     def __run(self, file_path=None, baudrate=921600, port=None, resume=False, load_ffh=False, mirror=False, switch_ffh=False, bootrom=False, rgbled=0x050505, debug=False, pkgdebug=False, atneg=True, max_try=10, direct=True, atneg_only=False, version_only=False):
@@ -519,7 +525,7 @@ if 'FiPy' in sysname or 'GPy' in sysname:
         fresume = False
         sqnup = sqnsupgrade()
         if sqnup.check_files(ffile, mfile, debug):
-            state = sqnup.detect_modem_state()
+            state = sqnup.detect_modem_state(initial_delay = 10)
             if debug: print('Modem state: {}'.format(state))
             if (not retry) and (not resume):
                 if state == 0:
@@ -547,7 +553,7 @@ if 'FiPy' in sysname or 'GPy' in sysname:
         fretry = False
         fresume = False
         sqnup = sqnsupgrade()
-        state = sqnup.detect_modem_state()
+        state = sqnup.detect_modem_state(initial_delay = 10)
         if (not retry) and (not resume):
             if state == 0:
                 print('Your modem is in recovery mode. You will need to use updater.elf file to upgrade.')
