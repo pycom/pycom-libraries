@@ -28,18 +28,17 @@ Please note that the `updater.elf` file is only around 300K so you can also stor
 To transfer the firmware files onto the SD card you have two options:
 
 1. Format your SD card as with the FAT file system and then copy the files onto the card using your computer
-2.
-  - Make sure your SD card has an MBR and a single primary partition, the format it directly on the module and mount it:
+2. Make sure your SD card has an MBR and a single primary partition, the format it directly on the module and mount it.
+3. Transfer the firmware files onto the SD card using FTP. Please ensure the transfer is successful and that the file on the module has the same size as the original file.
 
-  ```
-  from machine import SD
-  sd = SD()
-  os.mkfs(sd)
-  os.mount(sd, '/sd')
-  os.listdir('/sd')
-  ```
+```python
+from machine import SD
 
-  - Transfer the firmware files onto the SD card using FTP. Please ensure the transfer is successful and that the file on the module has the same size as the original file.
+sd = SD()
+os.mkfs(sd)            # format SD card
+os.mount(sd, '/sd')    # mount it
+os.listdir('/sd')      # list its content
+  ```
 
 Once you copied/uploaded the firmware files on to the SD card you can flash the LTE modem using the following command:
 
@@ -47,14 +46,14 @@ To flash the CAT-M1 firmware onto your device:
 
 ```python
 import sqnsupgrade
-sqnsupgrade.run('/sd/CATM1-38638.dup','/sd/updater.elf')
+sqnsupgrade.run('/sd/CATM1-38638.dup', '/sd/updater.elf')
 ```
 
 To flash the NB-IoT firmware onto your device:
 
 ```python
 import sqnsupgrade
-sqnsupgrade.run('/sd/NB1-37781.dup','/sd/updater.elf')
+sqnsupgrade.run('/sd/NB1-37781.dup', '/sd/updater.elf')
 ```
 
 Please note you can directly flash the desired firmware onto your module, it is not necessary to upgrade to the latest CAT-M1 firmware before switching to NB-IoT.
