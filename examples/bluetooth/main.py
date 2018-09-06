@@ -7,10 +7,10 @@ while True:
     adv = bt.get_adv()
     if adv 
         # try to get the complete name
-        print(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL))
+        print(bt.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL))
 
         # try to get the manufacturer data (Apple's iBeacon data is sent here)
-        print(binascii.hexlify(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_MANUFACTURER_DATA)))
+        print(bt.hexlify(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_MANUFACTURER_DATA)))
 
         
         if bt.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL) == 'Heart Rate':
