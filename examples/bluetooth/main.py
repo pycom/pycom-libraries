@@ -1,4 +1,5 @@
 from network import Bluetooth
+import binascii
 import time
 bt = Bluetooth()
 bt.start_scan(-1)
@@ -11,7 +12,6 @@ while True:
 
         # try to get the manufacturer data (Apple's iBeacon data is sent here)
         print(binascii.hexlify(bt.resolve_adv_data(adv.data, Bluetooth.ADV_MANUFACTURER_DATA)))
-
 
         if bt.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL) == 'Heart Rate':
             conn = bt.connect(adv.mac)
