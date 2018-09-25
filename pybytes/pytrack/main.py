@@ -9,6 +9,7 @@ from machine import SD
 from machine import Timer
 from L76GNSS import L76GNSS
 from pytrack import Pytrack
+from LIS2HH12 import LIS2HH12
 # setup as a station
 
 import gc
@@ -27,10 +28,14 @@ py = Pytrack()
 l76 = L76GNSS(py, timeout=30)
 chrono = Timer.Chrono()
 chrono.start()
+li = LIS2HH12(py)
 #sd = SD()
 #os.mount(sd, '/sd')
 #f = open('/sd/gps-record.txt', 'w')
-while (True):
+while (pybytes):
     coord = l76.coordinates()
+    #f.write("{} - {}\n".format(coord, rtc.now()))
+    print('Sending data')
     pybytes.send_virtual_pin_value(True, 1, coord)
+    pybytes.send_virtual_pin_value(True, 2, li.acceleration())
     time.sleep(10)
