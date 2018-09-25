@@ -47,7 +47,7 @@ def print_debug(msg):
         print(msg)
 
 def send_sensor_data(name, timeout):
-    while(pybytes):
+    while(true):
         print(lt.light())
         print(li.acceleration())
         time.sleep(timeout)
