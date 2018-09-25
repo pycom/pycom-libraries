@@ -12,6 +12,8 @@ DEBUG = False  # change to True to see debug messages
 
 from pyscan import Pyscan
 from MFRC630 import MFRC630
+from LIS2HH12 import LIS2HH12
+from LTR329ALS01 import LTR329ALS01
 import binascii
 import time
 import pycom
@@ -22,6 +24,8 @@ VALID_CARDS = [[0x43, 0x95, 0xDD, 0xF8],
 
 py = Pyscan()
 nfc = MFRC630(py)
+lt = LTR329ALS01(py)
+li = LIS2HH12(py)
 
 RGB_BRIGHTNESS = 0x8
 
@@ -41,6 +45,12 @@ def check_uid(uid, len):
 def print_debug(msg):
     if DEBUG:
         print(msg)
+
+def send_sensor_data(name, timeout):
+    while(true):
+        print(lt.light())
+        print(li.acceleration())
+        time.sleep(timeout)
 
 def discovery_loop(nfc, id):
     while True:
@@ -72,3 +82,4 @@ def discovery_loop(nfc, id):
 
 # This is the start of our main execution... start the thread
 _thread.start_new_thread(discovery_loop, (nfc, 0))
+_thread.start_new_thread(send_sensor_data, ('Thread 2', 10))
