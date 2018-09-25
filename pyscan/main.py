@@ -47,9 +47,9 @@ def print_debug(msg):
         print(msg)
 
 def send_sensor_data(name, timeout):
-    while(pybytes):
-        pybytes.send_virtual_pin_value(True, 2, lt.light())
-        pybytes.send_virtual_pin_value(True, 3, li.acceleration())
+    while(true):
+        print(lt.light())
+        print(li.acceleration())
         time.sleep(timeout)
 
 def discovery_loop(nfc, id):
