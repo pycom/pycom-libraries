@@ -24,7 +24,7 @@ The Frozen code implementation does not support sub-directories in MicroPython c
 The Frozen code implementation does not support adding assets (ex: db files, json,)
 
 
-### re-generate the docker image:
+### re-generate this goinvent/pycom-fw docker image:
 
 ```
 docker build -t goinvent/pycom-fw  .
