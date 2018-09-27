@@ -11,3 +11,13 @@ Please note that these examples only work when using the `pybytes` firmware.
 
 Note: For using pyscan user needs to upload either MFRC630.mpy or MFRC630.py.
 MFRC630.mpy if he is using WiPy else MFRC630.py will work.
+
+-Pytrack:
+GPS coordinate and Acceleration would give result in tuples.
+
+-Pysense:
+Humidity and temperature output would be in float32.
+Light sensor output would be in tuples.
+
+-Pyscan:
+Light sensor and Acceleration would give output in tuples.
