@@ -53,7 +53,7 @@ def send_sensor_data(name, timeout):
         time.sleep(timeout)
 
 def discovery_loop(arg1, arg2):
-    while True:
+    while(pybytes):
         # Send REQA for ISO14443A card type
         print_debug('Sending REQA for ISO14443A card type...')
         atqa = nfc.mfrc630_iso14443a_WUPA_REQA(nfc.MFRC630_ISO14443_CMD_REQA)
@@ -69,15 +69,18 @@ def discovery_loop(arg1, arg2):
                 if (check_uid(list(uid), uid_len)) > 0:
                     print_debug('Card is listed, turn LED green')
                     pycom.rgbled(RGB_GREEN)
+                    pybytes.send_virtual_pin_value(True, 1, ('Card is listed, Access granted', uid))
                 else:
                     print_debug('Card is not listed, turn LED red')
                     pycom.rgbled(RGB_RED)
+                    pybytes.send_virtual_pin_value(True, 1, ('Card is not listed, Access denied', uid))
         else:
             # No card detected
             print_debug('Did not detect any card...')
             pycom.rgbled(RGB_BLUE)
+            pybytes.send_virtual_pin_value(True, 1, ('Did not detect any card', 0))
         nfc.mfrc630_cmd_reset()
-        time.sleep(.5)
+        time.sleep(5)
         nfc.mfrc630_cmd_init()
 
 

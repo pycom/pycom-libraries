@@ -71,4 +71,4 @@ while True:
     nfc.mfrc630_cmd_reset()
     time.sleep(.5)
 	# Re-Initialise the MFRC630 with settings as these got wiped during reset
-	nfc.mfrc630_cmd_init()IÈ›äx%äa≤('j
+	nfc.mfrc630_cmd_init()
