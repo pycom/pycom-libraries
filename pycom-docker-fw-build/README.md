@@ -4,7 +4,7 @@
 
 ### usage:
 ```
- docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw board your-project stable|development
+ docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw build board your-project stable|development
 ```
 where board in `WIPY LOPY SIPY GPY FIPY LOPY4` and your-project is a tag for output file: `firmware-your-project.tar.gz`
 
