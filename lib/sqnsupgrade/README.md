@@ -17,7 +17,7 @@ Please start with the following steps:
 You can find the different versions of firmwares available here:
 <a href="https://software.pycom.io/downloads/sequans2.html">https://software.pycom.io/downloads/sequans2.html</a>
 
-There are two packages available, one for the latest CAT-M1 firmware, and another for the latest NB-IoT firmware.
+We are using CATM1-38638.zip and NB1-37781.zip as examples in this tutorial.
 
 After unpacking the zip archive, you will find each firmware packages contains two files, one being the firmware file (`CATM1-38638.dup` or `NB1-37781.dup`) and the `updater.elf` file, which is required when using the "recovery" firmware update method or if a previous upgrade failed and the modem is in recovery mode.
 
@@ -28,8 +28,8 @@ Please note that the `updater.elf` file is only around 300K so you can also stor
 To transfer the firmware files onto the SD card you have two options:
 
 1. Format your SD card as with the FAT file system and then copy the files onto the card using your computer
-2. Make sure your SD card has an MBR and a single primary partition, the format it directly on the module and mount it.
-3. Transfer the firmware files onto the SD card using FTP. Please ensure the transfer is successful and that the file on the module has the same size as the original file.
+
+2. Make sure your SD card has an MBR and a single primary partition, the format it directly on the module, mount it and transfer the firmware files onto the SD card using FTP. Please ensure the transfer is successful and that each file on the module has the same size as the original file on your PC.
 
 ```python
 from machine import SD
@@ -42,14 +42,14 @@ os.listdir('/sd')      # list its content
 
 Once you copied/uploaded the firmware files on to the SD card you can flash the LTE modem using the following command:
 
-To flash the CAT-M1 firmware onto your device:
+To flash the CAT-M1 firmware onto your device using the recovery method:
 
 ```python
 import sqnsupgrade
 sqnsupgrade.run('/sd/CATM1-38638.dup', '/sd/updater.elf')
 ```
 
-To flash the NB-IoT firmware onto your device:
+To flash the NB-IoT firmware onto your device using the recovery method:
 
 ```python
 import sqnsupgrade
@@ -97,7 +97,7 @@ SYSTEM VERSION
     ZSP1         : 1.0.99-12341
 ```
 
-Please note that the firmware update may seem to "stall" around 7-10% and again at 99%. This is not an indication of a failure but the fact that the modem has to do some tasks during and the updater will wait for these tasks to be completed. Unless the upgrade process is hanging for more than 5 minutes, **do not interrupt the process** as you will have to start again if you don't finish it.
+Please note that the firmware update may seem to "stall" around 7-10% and again at 99%. This is not an indication of a failure but the fact that the modem has to do some tasks during and the updater will wait for these tasks to be completed. Unless the upgrade process is hanging for more than 5 minutes, **do not interrupt the process** as you will have to start again if you don't finish it. It may also take several minutes for the updater to load before responding to the AT wakeup command.
 
 After you have updated your modem once using the recovery method, you can now flash your modem again using just the `CATM1-38638.dup` or `NB1-37781.dup` file without specifying the `updater.elf` file. However, should the upgrade fail, your modem may end up in recovery mode and you will need the `updater.elf` file again. The updater will check for this and prompt you if using the `updater.elf` file is necessary.
 
@@ -131,7 +131,7 @@ SYSTEM VERSION
 
 ### Via UART Serial Interface
 
-If you can't use an SD card to hold the firmware images, you can use the existing UART interface you have with the board to load these firmware files from your Computer.
+If you can't use an SD card to hold the firmware images, you can use the existing UART interface you have with the board to load these firmware files from your Computer. 
 
 You will need the following software installed on your computer:
 
@@ -140,14 +140,34 @@ You will need the following software installed on your computer:
 
 You will also need to download the following Python scripts: https://github.com/pycom/pycom-libraries/lib/sqnsupgrade
 
-First, you need to prepare your modem for upgrade mode by using the following commands:
+**Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise you will risk breaking your module
+
+You can upload the updater.elf file to the module's flash file system rather than uploading it via uart directly to the modem, which will slightly increase the speed of the upgrade.  
+
+First, you need to prepare your modem for upgrade mode by using the following commands.
 
 #### Commands to run on the Pycom module
+
+To use the recovery method:
 
 ```python
 import sqnsupgrade
 sqnsupgrade.uart(True)
 ```
+To use the recovery method using the updater.elf file on the module
+
+```python
+import sqnsupgrade
+sqnsupgrade.uart(True,'/flash/updater.elf')
+```
+
+To use the normal method:
+
+```python
+import sqnsupgrade
+sqnsupgrade.uart()
+```
+
 
 After this command is executed a message will be displayed asking you to close the port.
 
@@ -160,7 +180,9 @@ Going into MIRROR mode... please close this terminal to resume the upgrade via U
 
 You must  close the terminal/Atom or Visual Studio Code console to run the following commands from your computer:
 
-Go to the directory where you saved the `sqnsupgrade` scripts run the following commands in terminal
+Go to the directory where you saved the `sqnsupgrade` scripts and run the following commands in terminal:
+
+When using the recovery method:
 
 ```python
 $ python3
@@ -171,6 +193,20 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import sqnsupgrade
 >>> sqnsupgrade.run('Serial_Port', '/path/to/CATM1-38638.dup', '/path/to/updater.elf')
 ```
+
+When using the standard method (or if the updater.elf was loaded on the module):
+
+```python
+$ python3
+Python 3.6.5 (default, Apr 25 2018, 14:23:58)
+[GCC 4.2.1 Compatible Apple LLVM 9.1.0 (clang-902.0.39.1)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+>>> import sqnsupgrade
+>>> sqnsupgrade.run('Serial_Port', '/path/to/CATM1-38638.dup')
+```
+
+Please note that the firmware update may seem to "stall" around 7-10% and again at 99%. This is not an indication of a failure but the fact that the modem has to do some tasks during and the updater will wait for these tasks to be completed. Unless the upgrade process is hanging for more than 5 minutes, **do not interrupt the process** as you will have to start again if you don't finish it. It may also take several minutes for the updater to load before responding to the AT wakeup command.
 
 ### Retrying process
 
