@@ -11,7 +11,6 @@ Please note that these examples only work when using the `pybytes` firmware.
 
 Note: Note: For using Pyscan, you need to upload either MFRC630.mpy or MFRC630.py.
 It is always recommended to use MFRC630.mpy as it takes less space on your module.
-MFRC630.py is supported for newer version only e.g. WiPy3, LoPy4, GPy, FiPy
 
 - Pytrack:
 GPS coordinate and Acceleration would give result in tuples.
