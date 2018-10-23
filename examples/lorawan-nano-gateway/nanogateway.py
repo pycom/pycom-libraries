@@ -245,6 +245,7 @@ class NanoGateway:
             rx_data = self.lora_sock.recv(256)
             stats = lora.stats()
             packet = self._make_node_packet(rx_data, self.rtc.now(), stats.rx_timestamp, stats.sfrx, self.bw, stats.rssi, stats.snr)
+			packet = self._frequency_rounding_fix(packet, self.frequency)
             self._push_data(packet)
             self._log('Received packet: {}', packet)
             self.rxfw += 1
@@ -259,6 +260,17 @@ class NanoGateway:
                 coding_rate=LoRa.CODING_4_5,
                 tx_iq=True
                 )
+				
+	def _frequency_rounding_fix(self, packet, frequency):
+
+        float_frequency = str(frequency)[0:3] + '.' + str(frequency)[3]
+
+        start = packet.find("freq\":")
+        end = packet.find(",", start)
+
+        pkt = packet[:start + 7] + float_frequency + packet[end:]
+
+        return pkt
 
     def _freq_to_float(self, frequency):
         """
