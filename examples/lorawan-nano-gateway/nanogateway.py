@@ -245,7 +245,7 @@ class NanoGateway:
             rx_data = self.lora_sock.recv(256)
             stats = lora.stats()
             packet = self._make_node_packet(rx_data, self.rtc.now(), stats.rx_timestamp, stats.sfrx, self.bw, stats.rssi, stats.snr)
-			packet = self._frequency_rounding_fix(packet, self.frequency)
+            packet = self.frequency_rounding_fix(packet, self.frequency)
             self._push_data(packet)
             self._log('Received packet: {}', packet)
             self.rxfw += 1
@@ -260,17 +260,6 @@ class NanoGateway:
                 coding_rate=LoRa.CODING_4_5,
                 tx_iq=True
                 )
-				
-	def _frequency_rounding_fix(self, packet, frequency):
-
-        float_frequency = str(frequency)[0:3] + '.' + str(frequency)[3]
-
-        start = packet.find("freq\":")
-        end = packet.find(",", start)
-
-        pkt = packet[:start + 7] + float_frequency + packet[end:]
-
-        return pkt
 
     def _freq_to_float(self, frequency):
         """
@@ -288,6 +277,16 @@ class NanoGateway:
         if divider > 0:
             frequency = frequency / (10 ** divider)
         return frequency
+
+    def frequency_rounding_fix(self, packet, frequency):
+        freq = str(frequency)[0:3] + '.' + str(frequency)[3]
+
+        start = packet.find("freq\":")
+        end = packet.find(",", start)
+
+        packet = packet[:start + 7] + freq + packet[end:]
+
+        return packet
 
     def _make_stat_packet(self):
         now = self.rtc.now()
@@ -363,6 +362,27 @@ class NanoGateway:
             data
         )
 
+    def _send_down_link_class_c(self, data, datarate, frequency):
+        self.lora.init(
+            mode=LoRa.LORA,
+            frequency=frequency,
+            bandwidth=self._dr_to_bw(datarate),
+            sf=self._dr_to_sf(datarate),
+            preamble=8,
+            coding_rate=LoRa.CODING_4_5,
+            tx_iq=True,
+            device_class=LoRa.CLASS_C
+            )
+
+        self.lora_sock.send(data)
+        self._log(
+            'Sent downlink packet scheduled on {:.3f}, at {:.3f} Mhz using {}: {}',
+            utime.time(),
+            self._freq_to_float(frequency),
+            datarate,
+            data
+        )
+
     def _udp_thread(self):
         """
         UDP thread, reads data from the server and handles it.
@@ -381,22 +401,32 @@ class NanoGateway:
                     self.dwnb += 1
                     ack_error = TX_ERR_NONE
                     tx_pk = ujson.loads(data[4:])
-                    tmst = tx_pk["txpk"]["tmst"]
-                    t_us = tmst - utime.ticks_cpu() - 15000
-                    if t_us < 0:
-                        t_us += 0xFFFFFFFF
-                    if t_us < 20000000:
-                        self.uplink_alarm = Timer.Alarm(
-                            handler=lambda x: self._send_down_link(
-                                ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
-                                tx_pk["txpk"]["tmst"] - 50, tx_pk["txpk"]["datr"],
-                                int(tx_pk["txpk"]["freq"] * 1000) * 1000
-                            ), 
-                            us=t_us
-                        )
+                    if "tmst" in data:
+                        tmst = tx_pk["txpk"]["tmst"]
+                        t_us = tmst - utime.ticks_cpu() - 15000
+                        if t_us < 0:
+                            t_us += 0xFFFFFFFF
+                        if t_us < 20000000:
+    					    self.uplink_alarm = Timer.Alarm(
+                                handler=lambda x: self._send_down_link(
+                                    ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
+                                    tx_pk["txpk"]["tmst"] - 50, tx_pk["txpk"]["datr"],
+                                    int(tx_pk["txpk"]["freq"] * 1000) * 1000
+                                ),
+                                us=t_us
+                            )
+                        else:
+                            ack_error = TX_ERR_TOO_LATE
+                            self._log('Downlink timestamp error!, t_us: {}', t_us)
                     else:
-                        ack_error = TX_ERR_TOO_LATE
-                        self._log('Downlink timestamp error!, t_us: {}', t_us)
+                        self.uplink_alarm = Timer.Alarm(
+                            handler=lambda x: self._send_down_link_class_c(
+                                ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
+                                tx_pk["txpk"]["datr"],
+                                int(tx_pk["txpk"]["freq"] * 1000) * 1000
+                            ),
+                            us=50
+                        )
                     self._ack_pull_rsp(_token, ack_error)
                     self._log("Pull rsp")
             except usocket.timeout:
