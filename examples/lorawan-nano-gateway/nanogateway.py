@@ -31,7 +31,7 @@ TX_ERR_TX_FREQ = 'TX_FREQ'
 TX_ERR_TX_POWER = 'TX_POWER'
 TX_ERR_GPS_UNLOCKED = 'GPS_UNLOCKED'
 
-UDP_THREAD_CYCLE_MS = const(10)
+UDP_THREAD_CYCLE_MS = const(1)
 
 STAT_PK = {
     'stat': {
@@ -351,8 +351,8 @@ class NanoGateway:
             coding_rate=LoRa.CODING_4_5,
             tx_iq=True
             )
-        while utime.ticks_cpu() < tmst:
-            pass
+        #while utime.ticks_cpu() < tmst:
+        #    pass
         self.lora_sock.send(data)
         self._log(
             'Sent downlink packet scheduled on {:.3f}, at {:.3f} Mhz using {}: {}',
