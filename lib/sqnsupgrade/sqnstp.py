@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+# Copyright (c) 2016, Pycom Limited.
+#
+# This software is licensed under the GNU GPL version 3 or any
+# later version, with permitted additional terms. For more information
+# see the Pycom Licence v1.0 document supplied with this file, or
+# available at https://www.pycom.io/opensource/licensing
 
 import struct
 import time
@@ -59,9 +65,9 @@ def hexdump(src, length=32):
     lines = []
     for c in range(0, len(src), length):
         chars = src[c:c+length]
-    hex = ' '.join(['%02x' % x for x in chars])
-    printable = ''.join(['%s' % ((x <= 127 and FILTER[x]) or '.') for x in chars])
-    lines.append('%04x %-*s %s\n' % (c, length*3, hex, printable))
+    hex = ' '.join(["%02x" % ord(x) for x in chars])
+    printable = ''.join(["%s" % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
+    lines.append("%04x %-*s %s\n" % (c, length*3, hex, printable))
     print(''.join(lines))
 
 
@@ -374,17 +380,11 @@ def start(elf, elfsize, serial, baud=3686400, retry=None, debug=None, AT=True, p
 
     while True:
         try:
-            if debug: print('running m.wipe')
             m.wipe()
-            if debug: print('running m.reset')
             m.reset()
-            if debug: print('running m.open_session')
             m.open_session()
-            if debug: print('running push(m)')
             push(m)
-            if debug: print('running dev.set_timeout(2)')
             dev.set_timeout(2)
-            if debug: print('running m.reset(True)')
             m.reset(True)
             return True
         except MException as ex:
