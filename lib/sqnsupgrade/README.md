@@ -1,34 +1,52 @@
-## Sequans LTE modem upgrade procedure ##
+# Modem Firmware Update
 
 _Note: This article is only related to GPy, FiPy, and G01 boards_
 
-**Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise you will risk breaking your module
+**Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise you will risk breaking your module.
+
+Please also use the file upgdiff_33080-to-39529.dup (1.2M) from the archive.
+
+```python
+import sqnsupgrade
+sqnsupgrade.run('upgdiff_33080-to-39529.dup', 'updater.elf')
+```
 
 Please read the following instructions carefully as there are some significant changes compared to the previous updater version.
 
-Most importantly, the updater is now integrated in the latest stable firmware release (we will also publish a new development and pybytes firmware in the coming days), so you no longer need to upload any scripts to your module. The built-in updater will take precedence over any scripts uploaded.
+Most importantly, the updater is now integrated in the latest stable firmware release \(we will also publish a new development and pybytes firmware in the coming days\), so you no longer need to upload any scripts to your module. The built-in updater will take precedence over any scripts uploaded.
 
 Please start with the following steps:
 
 1. Upgrade the Pycom Firmware Updater tool to latest version
 2. Select Firmware Type `stable` in the communication window to upgrade to version `v1.18.1.r1`
 
+You can find the different versions of firmwares available here: <a href="http://software.pycom.io/downloads/sequans2.html"> http://software.pycom.io/downloads/sequans2.html​ </a>
 
-You can find the different versions of firmwares available here:
-<a href="https://software.pycom.io/downloads/sequans2.html">https://software.pycom.io/downloads/sequans2.html</a>
+These files are password protected, to download them you should be a forum.pycom.io member and access to: 
+Announcements & News --&gt;  Announcements only for members --&gt; Firmware Files for Sequans LTE modem now are secured, or clicking <a href="https://forum.pycom.io/topic/4020/firmware-files-for-sequans-lte-modem-now-are-secured"> Here </a> 
 
-We are using CATM1-38638.zip and NB1-37781.zip as examples in this tutorial.
+We are using `CATM1-39529.zip` and `NB1-37781.zip` as examples in this tutorial.
 
-After unpacking the zip archive, you will find each firmware packages contains two files, one being the firmware file (`CATM1-38638.dup` or `NB1-37781.dup`) and the `updater.elf` file, which is required when using the "recovery" firmware update method or if a previous upgrade failed and the modem is in recovery mode.
+After unpacking the zip archive, you will find each firmware packages contains two files, one being the firmware file \(e.g. `CATM1-39529.dup` or `NB1-37781.dup`\) and the `updater.elf` file, which is required when using the "recovery" firmware update method or if a previous upgrade failed and the modem is in recovery mode.
 
 Please note that the `updater.elf` file is only around 300K so you can also store it inside the flash file system of the module. The firmware dup files will NOT fit into the available `/flash` file system on the module, so you either need to use an SD card or upload it directly from your computer.
 
-### Via SD card
+
+To upgrade from the previous CAT-M1 firmware 38638 you can simply upload the upgdiff_38638-to-39529.dup file (452K) from the CATM1-39529.zip archive into the /flash directory on your module and run:
+
+```python
+import sqnsupgrade
+sqnsupgrade.run('upgdiff_38638-to-39529.dup')
+```
+If you are updating the Sequans firmware on your module for the first time, please use instead the file upgdiff_33080-to-39529.dup (1.2M) from the same archive.
+Similar upgrade packages are available for the NB-IoT firmwares. 
+
+
+## Via SD card
 
 To transfer the firmware files onto the SD card you have two options:
 
 1. Format your SD card as with the FAT file system and then copy the files onto the card using your computer
-
 2. Make sure your SD card has an MBR and a single primary partition, the format it directly on the module, mount it and transfer the firmware files onto the SD card using FTP. Please ensure the transfer is successful and that each file on the module has the same size as the original file on your PC.
 
 ```python
@@ -38,7 +56,7 @@ sd = SD()
 os.mkfs(sd)            # format SD card
 os.mount(sd, '/sd')    # mount it
 os.listdir('/sd')      # list its content
-  ```
+```
 
 Once you copied/uploaded the firmware files on to the SD card you can flash the LTE modem using the following command:
 
@@ -46,7 +64,7 @@ To flash the CAT-M1 firmware onto your device using the recovery method:
 
 ```python
 import sqnsupgrade
-sqnsupgrade.run('/sd/CATM1-38638.dup', '/sd/updater.elf')
+sqnsupgrade.run('/sd/CATM1-39529.dup', '/sd/updater.elf')
 ```
 
 To flash the NB-IoT firmware onto your device using the recovery method:
@@ -97,7 +115,9 @@ SYSTEM VERSION
     ZSP1         : 1.0.99-12341
 ```
 
+
 Please note that the firmware update may seem to "stall" around 7-10% and again at 99%. This is not an indication of a failure but the fact that the modem has to do some tasks during and the updater will wait for these tasks to be completed. Unless the upgrade process is hanging for more than 5 minutes, **do not interrupt the process** as you will have to start again if you don't finish it. It may also take several minutes for the updater to load before responding to the AT wakeup command.
+
 
 After you have updated your modem once using the recovery method, you can now flash your modem again using just the `CATM1-38638.dup` or `NB1-37781.dup` file without specifying the `updater.elf` file. However, should the upgrade fail, your modem may end up in recovery mode and you will need the `updater.elf` file again. The updater will check for this and prompt you if using the `updater.elf` file is necessary.
 
@@ -129,24 +149,24 @@ SYSTEM VERSION
     ZSP1         : 1.0.99-12341
 ```
 
-### Via UART Serial Interface
+## Via UART Serial Interface
 
-If you can't use an SD card to hold the firmware images, you can use the existing UART interface you have with the board to load these firmware files from your Computer. 
+If you can't use an SD card to hold the firmware images, you can use the existing UART interface you have with the board to load these firmware files from your Computer.
 
 You will need the following software installed on your computer:
 
 1. [Python 3](https://www.python.org/downloads), if it's not directly available through your OS distributor
 2. [PySerial](https://pythonhosted.org/pyserial/pyserial.html#installation)
 
-You will also need to download the following Python scripts: https://github.com/pycom/pycom-libraries/lib/sqnsupgrade
+You will also need to download the following Python scripts: [https://github.com/pycom/pycom-libraries/tree/master/lib/sqnsupgrade](https://github.com/pycom/pycom-libraries/tree/master/lib/sqnsupgrade)
 
-**Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise you will risk breaking your module
+**Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise, you will risk breaking your module.
 
-You can upload the updater.elf file to the module's flash file system rather than uploading it via uart directly to the modem, which will slightly increase the speed of the upgrade.  
+You can upload the `updater.elf` file to the module's flash file system rather than uploading it via UART directly to the modem, which will slightly increase the speed of the upgrade.
 
 First, you need to prepare your modem for upgrade mode by using the following commands.
 
-#### Commands to run on the Pycom module
+### **Commands to run on the Pycom module**
 
 To use the recovery method:
 
@@ -154,31 +174,30 @@ To use the recovery method:
 import sqnsupgrade
 sqnsupgrade.uart(True)
 ```
-To use the recovery method using the updater.elf file on the module
+
+To use the recovery method using the `updater.elf` file on the module**:**
 
 ```python
-import sqnsupgrade
-sqnsupgrade.uart(True,'/flash/updater.elf')
+ import sqnsupgrade
+ sqnsupgrade.uart(True,'/flash/updater.elf')
 ```
 
 To use the normal method:
 
 ```python
-import sqnsupgrade
-sqnsupgrade.uart()
+ import sqnsupgrade
+ sqnsupgrade.uart()
 ```
-
 
 After this command is executed a message will be displayed asking you to close the port.
 
-```
+```text
 Going into MIRROR mode... please close this terminal to resume the upgrade via UART
 ```
 
+### **Commands to be run on your computer**
 
-#### Commands to be run on your computer
-
-You must  close the terminal/Atom or Visual Studio Code console to run the following commands from your computer:
+You must close the terminal/Atom or Visual Studio Code console to run the following commands from your computer:
 
 Go to the directory where you saved the `sqnsupgrade` scripts and run the following commands in terminal:
 
@@ -191,23 +210,36 @@ Python 3.6.5 (default, Apr 25 2018, 14:23:58)
 Type "help", "copyright", "credits" or "license" for more information.
 >>>
 >>> import sqnsupgrade
->>> sqnsupgrade.run('Serial_Port', '/path/to/CATM1-38638.dup', '/path/to/updater.elf')
+>>> sqnsupgrade.run('Serial_Port', '/path/to/CATM1-39529.dup', '/path/to/updater.elf')
 ```
 
-When using the standard method (or if the updater.elf was loaded on the module):
+When using the standard method \(or if the `updater.elf` was loaded on the module\):
 
 ```python
-$ python3
-Python 3.6.5 (default, Apr 25 2018, 14:23:58)
-[GCC 4.2.1 Compatible Apple LLVM 9.1.0 (clang-902.0.39.1)] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
->>>
->>> import sqnsupgrade
->>> sqnsupgrade.run('Serial_Port', '/path/to/CATM1-38638.dup')
+ $ python3
+ Python 3.6.5 (default, Apr 25 2018, 14:23:58)
+ [GCC 4.2.1 Compatible Apple LLVM 9.1.0 (clang-902.0.39.1)] on darwin
+ Type "help", "copyright", "credits" or "license" for more information.
+ >>>
+ >>> import sqnsupgrade
+ >>> sqnsupgrade.run('Serial_Port', '/path/to/CATM1-39529.dup')
 ```
 
 Please note that the firmware update may seem to "stall" around 7-10% and again at 99%. This is not an indication of a failure but the fact that the modem has to do some tasks during and the updater will wait for these tasks to be completed. Unless the upgrade process is hanging for more than 5 minutes, **do not interrupt the process** as you will have to start again if you don't finish it. It may also take several minutes for the updater to load before responding to the AT wakeup command.
 
-### Retrying process
+## Retrying process
 
-In case of any failure or interruption to the process of LTE modem upgrade you can repeat the same steps **after doing a hard reset to the board (i.e disconnecting and reconnecting power), pressing the reset button is not enough.**
+In case of any failure or interruption to the process of LTE modem upgrade you can repeat the same steps **after doing a hard reset to the board \(i.e disconnecting and reconnecting power\), pressing the reset button is not enough.**
+
+## Sqnsupgrade class
+
+The latest version of the `sqnsupgrade` class has a few additional features that help with debugging or modem update.
+
+
+#### sqnsupgrade.info\(\)
+     If the modem is in application mode, the current firmware version is displayed. This behaviour replaces the version() command which now is only available in uart() mode. Optional parameters are sqnsupgrade.info(verbose=False, debug=False)
+
+#### sqnsupgrade.run\(load_fff=True\)
+    New optional command line option load_fff for the sqnsupgrade.run() command. This is designed to be an internal flag. And should only applied when advised by pycom support.
+    
+
