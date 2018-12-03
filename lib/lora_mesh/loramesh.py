@@ -29,7 +29,7 @@ class Loramesh:
 
     def __init__(self, lora=None):
         """ Constructor """
-        if lora is not None:
+        if lora is None:
             self.lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868, bandwidth=LoRa.BW_125KHZ, sf=7)
         else:
             self.lora = lora
