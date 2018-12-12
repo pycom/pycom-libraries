@@ -4,27 +4,54 @@ boards="WIPY LOPY SIPY GPY FIPY LOPY4"
 
 function usage() {
   echo "Usage:"
-  echo " $0 board version-code stable|development"
+  echo " $0 board-type version-code [micropython-sigfox-git-tag] [esp-idf-git-tag]"
   echo ""
-  echo "where board in $boards and version-code is a tag for output file"
+  echo "where board-type in $boards and version-code is a tag for output file"
   echo ""
   exit 1
 }
 
 function prepare_dev() {
-  echo "Usage $0 board version-code"
-  echo "where board in $boards and version-code is a tag for output file"
+  echo "Checkout $1 $2 board version-code"
 
-  cd /opt/pycom-esp-idf
-  git checkout  -b idf_dev
-  git submodule update --init
+  if [ ! -z "$1" ]
+  then
+    cd /opt/pycom-micropython-sigfox
+    # fetch all branches
+    git branch -r | grep -v '\->' | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
+      # try to find branch revision $1
+    if  git pull ; git rev-list $1.. >/dev/null
 
-  cd /opt/pycom-micropython-sigfox
-  git checkout -b development
-  git submodule update --init
+    then
+        echo "Checkout "
+    else
+        exit 1
+    fi
+    cd /opt/pycom-micropython-sigfox
+    git checkout $1
+    cd mpy-cross && make clean && make && cd ..
+    git submodule update --init
+  fi
 
-  cd /opt/pycom-micropython-sigfox/esp32
+  if [ ! -z "$2" ]
+    then
+      cd /opt/pycom-esp-idf;
+      # fetch all branches
+      git branch -r | grep -v '\->' | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
+      # try to find branch revision $2
+      if  git rev-list $2.. >/dev/null
 
+      then
+          echo ""
+          # branch exists
+      else
+         # branch does not exists
+          exit
+      fi
+      cd /opt/pycom-esp-idf
+      git checkout $2
+      git submodule update --init
+    fi
 }
 
 function build() {
@@ -45,16 +72,14 @@ function build() {
   cp ../bootloader/bootloader.bin . &&
   cp ../application.elf appimg.bin &&
   cp ../lib/partitions.bin . &&
-  cp ../../../../boards/$BOARD/$BOARD/script . &&
+  # cp ../../../../boards/$BOARD/$BOARD/script . &&
   cp ../$board.bin . &&
-  tar -czvf /opt/frozen/$board-firmware-$PROJECT.tar.gz appimg.bin  bootloader.bin   partitions.bin   script $board.bin &&
+  tar -czvf /opt/frozen/$board-firmware-$PROJECT.tar.gz appimg.bin  bootloader.bin   partitions.bin $board.bin &&
   echo "Firmware ready /opt/frozen/$board-firmware-$PROJECT.tar.gz"
 }
 
-[[ "stable development" =~ (^|[[:space:]])$3($|[[:space:]]) ]] &&
-  echo "build target $3" ||
-  usage
-
 [[ $boards =~ (^|[[:space:]])$1($|[[:space:]]) ]] &&
-  build  $1 $2 ||
+        echo "#goinvent " ||
   usage
+prepare_dev $3 $4
+build $1 $2

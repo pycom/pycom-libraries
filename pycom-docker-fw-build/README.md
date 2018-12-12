@@ -4,9 +4,9 @@
 
 ### usage:
 ```
- docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw build board your-project stable|development
+sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw build board-type your-project-version-code [micropython-sigfox-git-tag] [esp-idf-git-tag]
 ```
-where board in `WIPY LOPY SIPY GPY FIPY LOPY4` and your-project is a tag for output file: `firmware-your-project.tar.gz`
+where board in `WIPY LOPY SIPY GPY FIPY LOPY4` and your-project-version-code is a tag for output file: `LOPY4-your-project-version-code.tar.gz`
 
 
 ### example:
@@ -14,18 +14,21 @@ where board in `WIPY LOPY SIPY GPY FIPY LOPY4` and your-project is a tag for out
 If you have your MicroPython project in the current directory `.` just type:
 
 ```
-  docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build LOPY4 myproject stable
+sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build LOPY4 myproject
+```
+For building against a specific revision (ex:v1.20.0.rc0 idf_dev) you can use:
+```
+sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build LOPY4 myproject v1.20.0.rc0 idf_v3.1
 ```
 
 ### note:
 
-The Frozen code implementation does not support sub-directories in MicroPython code.
+The Frozen code implementation might not support sub-directories in MicroPython code.
 
 The Frozen code implementation does not support adding assets (ex: db files, json,)
-
 
 ### re-generate this goinvent/pycom-fw docker image:
 
 ```
-docker build -t goinvent/pycom-fw  .
+sudo docker build -t goinvent/pycom-fw  .
 ```
