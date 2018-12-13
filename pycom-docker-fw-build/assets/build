@@ -62,19 +62,17 @@ function build() {
   board=`echo "$BOARD" | tr '[:upper:]' '[:lower:]'`
   cd /opt/pycom-micropython-sigfox/esp32/ &&
   make clean &&
-  make BOARD=$BOARD TARGET=boot &&
-  make BOARD=$BOARD TARGET=app &&
-  rm /opt/pycom-micropython-sigfox/esp32/frozen/Common/* &&
-  cp /opt/frozen/*.py /opt/pycom-micropython-sigfox/esp32/frozen/Common/ &&
+  make BOARD=$BOARD TARGET=boot_app &&
+  cp /opt/frozen/*.py /opt/pycom-micropython-sigfox/esp32/frozen/Custom/ &&
   cd ../esp32/build/$BOARD/release &&
   mkdir -p firmware_package &&
   cd firmware_package/ &&
   cp ../bootloader/bootloader.bin . &&
   cp ../application.elf appimg.bin &&
   cp ../lib/partitions.bin . &&
-  # cp ../../../../boards/$BOARD/$BOARD/script . &&
+  cat ../../../../tools/script | sed s/\"appimg.bin\"/\"${board}.bin\"/ > ./script;
   cp ../$board.bin . &&
-  tar -czvf /opt/frozen/$board-firmware-$PROJECT.tar.gz appimg.bin  bootloader.bin   partitions.bin $board.bin &&
+  tar -czvf /opt/frozen/$board-firmware-$PROJECT.tar.gz script appimg.bin  bootloader.bin   partitions.bin $board.bin &&
   echo "Firmware ready /opt/frozen/$board-firmware-$PROJECT.tar.gz"
 }
 
