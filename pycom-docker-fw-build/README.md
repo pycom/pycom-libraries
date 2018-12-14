@@ -16,10 +16,11 @@ If you have your MicroPython project in the current directory `.` just type:
 ```
 sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build LOPY4 myproject
 ```
-For building against a specific revision (ex:v1.20.0.rc0 idf_dev) you can use:
+For building against a specific revision (ex:v1.20.0.rc0 idf_v3.1) you can use:
 ```
-sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build LOPY4 myproject v1.20.0.rc0 idf_v3.1
+sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build FIPY myproject v1.20.0.rc0 idf_v3.1
 ```
+
 
 ### note:
 
