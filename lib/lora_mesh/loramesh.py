@@ -5,20 +5,20 @@ import utime
 import ubinascii
 import pycom
 
-__version__ = '1'
+__version__ = '2'
 
 class Loramesh:
     """ Class for using Lora Mesh - openThread """
 
-    STATE_NOT_CONNECTED = const(0)
-    STATE_CHILD = const(1)
-    STATE_ROUTER = const(2)
-    STATE_LEADER = const(3)
-    #STATE_CHILD_SINGLE = const(4)
-    STATE_LEADER_SINGLE = const(4)
+    STATE_DISABLED = const(0)
+    STATE_DETACHED = const(1)
+    STATE_CHILD = const(2)
+    STATE_ROUTER = const(3)
+    STATE_LEADER = const(4)
+    STATE_LEADER_SINGLE = const(5)
 
-    # rgb LED color for each state: not connected, child, router, leader and single leader
-    RGBLED = [0x0A0000, 0x0A0A0A, 0x000A00, 0x00000A, 0x07070A]
+    # rgb LED color for each state: disabled, detached, child, router, leader and single leader
+    RGBLED = [0x0A0000, 0x0A0000, 0x0A0A0A, 0x000A00, 0x0A000A, 0x000A0A]
 
     # address to be used for multicasting
     MULTICAST_MESH_ALL = 'ff03::1'
@@ -33,25 +33,37 @@ class Loramesh:
             self.lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868, bandwidth=LoRa.BW_125KHZ, sf=7)
         else:
             self.lora = lora
-        self.lora.mesh()
+        self.mesh = self.lora.Mesh()
         self.rloc = ''
         self.ip_eid = ''
         self.ip_link = ''
         self.single = True
-        self.state_id = STATE_NOT_CONNECTED
+        self.state = STATE_DISABLED
+
+    def _state_update(self):
+        """ Returns the Thread role """
+        self.state = self.mesh.state()
+        if self.state < 0:
+            self.state = self.STATE_DISABLED
+        return self.state
+
+    def _rloc_ip_net_addr(self):
+        """ returns the family part of RLOC IPv6, without last word (2B) """
+        self.net_addr = ':'.join(self.rloc.split(':')[:-1]) + ':'
+        return self.net_addr
 
     def _update_ips(self):
         """ Updates all the unicast IPv6 of the Thread interface """
-        ip_all = self.lora.cli('ipaddr')
-        ips = ip_all.split('\r\n')
-        try:
-            rloc16 = int(self.lora.cli('rloc16'), 16)
-        except Exception:
-            rloc16 = 0xFFFF
+        ips = self.mesh.ipaddr()
+        self.rloc16 = self.mesh.rloc()
         for line in ips:
             if line.startswith('fd'):
                 # Mesh-Local unicast IPv6
-                if int(line.split(':')[-1], 16) == rloc16:
+                try:
+                    addr = int(line.split(':')[-1], 16)
+                except Exception:
+                    continue
+                if addr == self.rloc16:
                     # found RLOC
                     # RLOC IPv6 has x:x:x:x:0:ff:fe00:RLOC16
                     self.rloc = line
@@ -63,87 +75,47 @@ class Loramesh:
                 self.ip_link = line
 
     def is_connected(self):
-        """ Returns true if it is connected if its Child, Router or Leader """
+        """ Returns true if it is connected as either Child, Router or Leader """
         connected = False
-        state = self.state()
-        if state == STATE_CHILD or state == STATE_ROUTER or state == STATE_LEADER:
+        self.state = self.mesh.state()
+        if self.state in (STATE_CHILD, STATE_ROUTER, STATE_LEADER, STATE_LEADER_SINGLE):
             connected = True
         return connected
 
-    def state(self):
-        """ Returns the Thread role """
-        state_code = STATE_NOT_CONNECTED
-        try:
-            state = self.lora.cli('state')
-
-            if state.startswith('child'):
-                state_code = STATE_CHILD
-            elif state.startswith('router'):
-                state_code = STATE_ROUTER
-            elif state.startswith('leader'):
-                state_code = STATE_LEADER
-                self.single = False
-                single_str = self.lora.cli('singleton')
-                if single_str.startswith('true'):
-                    self.single = True
-                    state_code = STATE_LEADER_SINGLE
-
-            self.state_id = state_code
-        except Exception:
-                pass
-        return state_code
-
     def led_state(self):
         """ Sets the LED according to the Thread role """
-        pycom.rgbled(self.RGBLED[self.state()])
+        if self.state == STATE_LEADER and self.mesh.single():
+            pycom.rgbled(self.RGBLED[self.STATE_LEADER_SINGLE])
+        else:
+            pycom.rgbled(self.RGBLED[self.state])
 
     def ip(self):
         """ Returns the IPv6 RLOC """
         self._update_ips()
         return self.rloc
 
-    def parent_ip(self):
-        """ Returns the IP of the parent, if it's child node """
-        ip = None
-        state = self.state()
-        if state == STATE_CHILD or state == STATE_ROUTER:
-            try:
-                ip_words = self.ip().split(':')
-                parent_rloc = int(self.lora.cli('parent').split('\r\n')[1].split(' ')[1], 16)
-                ip_words[-1] = hex(parent_rloc)[2:]
-                ip = ':'.join(ip_words)
-            except Exception:
-                pass
-        return ip
+    def neighbors(self):
+        """ Returns a list with all properties of the neighbors """
+        return self.mesh.neighbors()
 
     def neighbors_ip(self):
-        """ Returns a list with IP of the neighbors (children, parent, other routers) """
-        state = self.state()
-        neigh = []
-        if state == STATE_ROUTER or state == STATE_LEADER:
-            ip_words = self.ip().split(':')
-            # obtain RLOC16 neighbors
-            neighbors = self.lora.cli('neighbor list').split(' ')
-            for rloc in neighbors:
-                if len(rloc) == 0:
-                    continue
-                try:
-                    ip_words[-1] = str(rloc[2:])
-                    nei_ip = ':'.join(ip_words)
-                    neigh.append(nei_ip)
-                except Exception:
-                        pass
-        elif state == STATE_CHILD:
-            neigh.append(self.parent_ip())
-        return neigh
+        """ Returns a list with IPv6 (as strings) of the neighbors """
+        neighbors = self.neighbors()
+        nei_list = []
+        net_ip = self._rloc_ip_net_addr()
+        if neighbors is not None:
+            for nei_rec in neighbors:
+                nei_ip = net_ip + hex(nei_rec.rloc16)[2:]
+                nei_list.append(nei_ip)
+        return nei_list
 
     def ipaddr(self):
         """ Returns a list with all unicast IPv6 """
-        return self.lora.cli('ipaddr').split('\r\n')
+        return self.mesh.ipaddr()
 
     def cli(self, command):
         """ Simple wrapper for OpenThread CLI """
-        return self.lora.cli(command)
+        return self.mesh.cli(command)
 
     def ping(self, ip):
         """ Returns ping return time, to an IP """
@@ -161,7 +133,7 @@ class Loramesh:
     def blink(self, num = 3, period = .5, color = None):
         """ LED blink """
         if color is None:
-            color = self.RGBLED[self.state()]
+            color = self.RGBLED[self.state]
         for i in range(0, num):
             pycom.rgbled(0)
             time.sleep(period)
