@@ -11,16 +11,20 @@ where board in `WIPY LOPY SIPY GPY FIPY LOPY4` and your-project-version-code is 
 
 ### example:
 
-If you have your MicroPython project in the current directory `.` just type:
-
+For building against a specific revision (ex:v1.20.0.rc7 idf_v3.1) you can use:
 ```
-sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build LOPY4 myproject
-```
-For building against a specific revision (ex:v1.20.0.rc0 idf_v3.1) you can use:
-```
-sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build FIPY myproject v1.20.0.rc0 idf_v3.1
+sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build FIPY myproject v1.20.0.rc7 idf_v3.1
 ```
 
+### Altering Espressif IDF options:
+
+Have a file `sdkconfig.defaults` similar to https://github.com/pycom/pycom-esp-idf/blob/master/examples/wifi/scan/sdkconfig in your local frozen directory (ex: .), then use the same command:
+
+```
+sudo docker run -v `pwd`:/opt/frozen -it goinvent/pycom-fw  build FIPY myproject v1.20.0.rc7 idf_v3.1
+```
+
+Beginning the build the `sdkconfig.defaults` overrides.
 
 ### note:
 
