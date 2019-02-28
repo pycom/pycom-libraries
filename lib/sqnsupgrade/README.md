@@ -41,6 +41,7 @@ sqnsupgrade.run('upgdiff_38638-to-39529.dup')
 If you are updating the Sequans firmware on your module for the first time, please use instead the file upgdiff_33080-to-39529.dup (1.2M) from the same archive.
 Similar upgrade packages are available for the NB-IoT firmwares. 
 
+{% hint style="danger" %} When using differential upgrade packages (ex: upgdiff_XXXX-to-XXXX.dup) you **CANNOT** use updater.elf file {% endhint %}
 
 ## Via SD card
 
