@@ -51,38 +51,24 @@ function prepare_dev() {
       cd /opt/pycom-esp-idf
       git checkout $2
       git submodule update --init
-
-      if [ -f /opt/frozen/sdkconfig.defaults ]
-      then
-          cd examples/wifi/scan/
-          cp /opt/frozen/sdkconfig.defaults sdkconfig.defaults
-          make defconfig
-          make bootloader
-          make -j4 all
-          echo "IDF build options:"
-          cat sdkconfig
-      fi
     fi
 }
 
 function build() {
   BOARD=$1
   PROJECT=$2
+  export PATH=$PATH:/opt/xtensa-esp32-elf/bin/
+  export IDF_PATH=/opt/pycom-esp-idf
   board=`echo "$BOARD" | tr '[:upper:]' '[:lower:]'`
   cd /opt/pycom-micropython-sigfox/esp32/ &&
   make clean BOARD=$BOARD &&
   cd ../mpy-cross && make clean && make && cd ../esp32  &&
   cp /opt/frozen/*.py ./frozen/Base/ &&
   mv ./frozen/Base/main.py ./frozen/Base/_main.py
-  make TARGET=boot COPY_IDF_LIBS=1 BOARD=$BOARD RELEASE_DIR=/tmp
-  cat /opt/pycom-esp-idf/examples/wifi/scan/sdkconfig.defaults
-  make release COPY_IDF_LIBS=1 BOARD=$BOARD RELEASE_DIR=/tmp
+  make release BOARD=$BOARD RELEASE_DIR=/tmp
   mv /tmp/*.tar.gz /opt/frozen/$board-firmware-$PROJECT.tar.gz
   echo "Firmware $board-firmware-$PROJECT.tar.gz ready !"
 }
-
-export PATH=$PATH:/opt/xtensa-esp32-elf/bin/
-export IDF_PATH=/opt/pycom-esp-idf
 
 [[ $boards =~ (^|[[:space:]])$1($|[[:space:]]) ]] &&
         echo "#goinvent " ||
