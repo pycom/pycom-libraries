@@ -39,6 +39,7 @@ class Loramesh:
         self.ip_link = ''
         self.single = True
         self.state = STATE_DISABLED
+        self.ip_others = []
 
     def _state_update(self):
         """ Returns the Thread role """
@@ -54,6 +55,7 @@ class Loramesh:
 
     def _update_ips(self):
         """ Updates all the unicast IPv6 of the Thread interface """
+        self.ip_others = []
         ips = self.mesh.ipaddr()
         self.rloc16 = self.mesh.rloc()
         for line in ips:
@@ -73,6 +75,8 @@ class Loramesh:
             elif line.startswith('fe80'):
                 # Link-Local
                 self.ip_link = line
+            else:
+                self.ip_others.append(line)
 
     def is_connected(self):
         """ Returns true if it is connected as either Child, Router or Leader """
@@ -89,10 +93,18 @@ class Loramesh:
         else:
             pycom.rgbled(self.RGBLED[self.state])
 
-    def ip(self):
+    # returns the IP ML-EID or the ip having this prefix
+    def ip(self, prefix = None):
         """ Returns the IPv6 RLOC """
-        self._update_ips()
-        return self.rloc
+        ip = self._update_ips()
+        if prefix is None:
+            return self.ip_eid
+        # we need to check al IPs from self.ip_others that may start with prefix
+        p = prefix.split("::")[0]
+        for ip in self.ip_others:
+            if ip.startswith(p):
+                return ip
+        return None
 
     def neighbors(self):
         """ Returns a list with all properties of the neighbors """
