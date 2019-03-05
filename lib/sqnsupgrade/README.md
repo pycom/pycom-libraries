@@ -4,11 +4,11 @@ _Note: This article is only related to GPy, FiPy, and G01 boards_
 
 **Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise you will risk breaking your module.
 
-Please also use the file upgdiff_33080-to-39529.dup (1.2M) from the archive.
+Please also use the file CATM1-39529.dup from the archive.
 
 ```python
 import sqnsupgrade
-sqnsupgrade.run('upgdiff_33080-to-39529.dup', 'updater.elf')
+sqnsupgrade.run('CATM1-39529.dup', 'updater.elf')
 ```
 
 Please read the following instructions carefully as there are some significant changes compared to the previous updater version.
@@ -18,7 +18,7 @@ Most importantly, the updater is now integrated in the latest stable firmware re
 Please start with the following steps:
 
 1. Upgrade the Pycom Firmware Updater tool to latest version
-2. Select Firmware Type `stable` in the communication window to upgrade to version `v1.18.1.r1`
+2. Select Firmware Type `stable` in the communication window to upgrade to version `v1.18.2.r1`
 
 You can find the different versions of firmwares available here: <a href="http://software.pycom.io/downloads/sequans2.html"> http://software.pycom.io/downloads/sequans2.html​ </a>
 
@@ -38,7 +38,7 @@ To upgrade from the previous CAT-M1 firmware 38638 you can simply upload the upg
 import sqnsupgrade
 sqnsupgrade.run('upgdiff_38638-to-39529.dup')
 ```
-If you are updating the Sequans firmware on your module for the first time, please use instead the file upgdiff_33080-to-39529.dup (1.2M) from the same archive.
+If you are updating the Sequans firmware on your module for the first time, please use the file CATM1-39529.dup along with the 'updater.elf' from the same archive.
 Similar upgrade packages are available for the NB-IoT firmwares. 
 
 >When using differential upgrade packages (ex: upgdiff_XXXX-to-XXXX.dup) you **CANNOT** use updater.elf file.
