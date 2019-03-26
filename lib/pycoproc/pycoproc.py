@@ -75,7 +75,7 @@ class Pycoproc:
         if i2c is not None:
             self.i2c = i2c
         else:
-            self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
+            self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl), baudrate=100000)
 
         self.sda = sda
         self.scl = scl
@@ -235,7 +235,7 @@ class Pycoproc:
         self.i2c.deinit()
         Pin('P21', mode=Pin.IN)
         pulses = pycom.pulses_get('P21', 100)
-        self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl))
+        self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl), baudrate=100000)
         idx = 0
         for i in range(len(pulses)):
             if pulses[i][1] > EXP_RTC_PERIOD:
