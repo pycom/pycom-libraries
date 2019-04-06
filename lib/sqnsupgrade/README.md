@@ -2,14 +2,6 @@
 
 _Note: This article is only related to GPy, FiPy, and G01 boards_
 
-**Important**: When upgrading your modem for the first time, even if you have updated it in the past with the old firmware update method, you **MUST** use the "recovery" upgrade method described below. Otherwise you will risk breaking your module.
-
-Please also use the file CATM1-39529.dup from the archive.
-
-```python
-import sqnsupgrade
-sqnsupgrade.run('CATM1-39529.dup', 'updater.elf')
-```
 
 Please read the following instructions carefully as there are some significant changes compared to the previous updater version.
 
@@ -18,27 +10,54 @@ Most importantly, the updater is now integrated in the latest stable firmware re
 Please start with the following steps:
 
 1. Upgrade the Pycom Firmware Updater tool to latest version
-2. Select Firmware Type `stable` in the communication window to upgrade to version `v1.18.2.r1`
+2. Select Firmware Type `stable` in the communication window to upgrade to latest stable version
 
 You can find the different versions of firmwares available here: <a href="http://software.pycom.io/downloads/sequans2.html"> http://software.pycom.io/downloads/sequans2.html​ </a>
 
 These files are password protected, to download them you should be a forum.pycom.io member and access to: 
 Announcements & News --&gt;  Announcements only for members --&gt; Firmware Files for Sequans LTE modem now are secured, or clicking <a href="https://forum.pycom.io/topic/4020/firmware-files-for-sequans-lte-modem-now-are-secured"> Here </a> 
 
-We are using `CATM1-39529.zip` and `NB1-37781.zip` as examples in this tutorial.
+We are using `CATM1-39529.zip` and `NB1-40343.zip` as examples in this tutorial.
 
-After unpacking the zip archive, you will find each firmware packages contains two files, one being the firmware file \(e.g. `CATM1-39529.dup` or `NB1-37781.dup`\) and the `updater.elf` file, which is required when using the "recovery" firmware update method or if a previous upgrade failed and the modem is in recovery mode.
+After unpacking the zip archive, you will find each firmware packages contains two files, one being the firmware file \(e.g. `upgdiff_33080-to-39529.dup` or `upgdiff_33080-to-40343.dup`\) and the `updater.elf` file, which is required when using the **"recovery"** firmware update method or if a previous upgrade failed and the modem is in **recovery** mode.
+
+to Know if your modem is in recovery mode or not, please execute the following code via the REPEL
+
+```
+import sqnsupgrade
+sqnsupgrade.info()
+```
+
+For modems in recovery mode this will be displayed:
+`Your modem is in recovery mode! Use firmware.dup and updater.elf to flash new firmware.`
+
+`firmware.dup` => here refers to the full firmware image eg. `CATM1-39529.dup` **NOT** the differential upgrade file eg. `upgdiff_33080-to-39529.dup`
+
+Please note that you have to choose the right .dup file when updating the modem Firmware , example if you are going to update modem with current FW version 33080 to FW version 39529, you should use `upgdiff_33080-to-39529.dup` and similarly for other Firmware versions. 
+
+`sqnsupgrade.info()` will show the current firmware version:
+
+```
+Your modem is in application mode. Here is the current version:
+UE5.0.0.0d
+LR5.1.1.0-39529
+
+IMEI: 354346099225475
+```
+Here it is **39529**
+
 
 Please note that the `updater.elf` file is only around 300K so you can also store it inside the flash file system of the module. The firmware dup files will NOT fit into the available `/flash` file system on the module, so you either need to use an SD card or upload it directly from your computer.
 
+If you modem is **not** in recovery mode , you **don't** need the "updater.elf" file 
 
-To upgrade from the previous CAT-M1 firmware 38638 you can simply upload the upgdiff_38638-to-39529.dup file (452K) from the CATM1-39529.zip archive into the /flash directory on your module and run:
+
+To upgrade from the previous CAT-M1 firmware 38638 you can simply upload the `upgdiff_38638-to-39529.dup` file (452K) from the CATM1-39529.zip archive into the /flash directory on your module and run:
 
 ```python
 import sqnsupgrade
 sqnsupgrade.run('upgdiff_38638-to-39529.dup')
 ```
-If you are updating the Sequans firmware on your module for the first time, please use the file CATM1-39529.dup along with the 'updater.elf' from the same archive.
 Similar upgrade packages are available for the NB-IoT firmwares. 
 
 >When using differential upgrade packages (ex: upgdiff_XXXX-to-XXXX.dup) you **CANNOT** use updater.elf file.
@@ -72,7 +91,7 @@ To flash the NB-IoT firmware onto your device using the recovery method:
 
 ```python
 import sqnsupgrade
-sqnsupgrade.run('/sd/NB1-37781.dup', '/sd/updater.elf')
+sqnsupgrade.run('/sd/NB1-40343.dup', '/sd/updater.elf')
 ```
 
 Please note you can directly flash the desired firmware onto your module, it is not necessary to upgrade to the latest CAT-M1 firmware before switching to NB-IoT.
@@ -120,7 +139,7 @@ SYSTEM VERSION
 Please note that the firmware update may seem to "stall" around 7-10% and again at 99%. This is not an indication of a failure but the fact that the modem has to do some tasks during and the updater will wait for these tasks to be completed. Unless the upgrade process is hanging for more than 5 minutes, **do not interrupt the process** as you will have to start again if you don't finish it. It may also take several minutes for the updater to load before responding to the AT wakeup command.
 
 
-After you have updated your modem once using the recovery method, you can now flash your modem again using just the `CATM1-38638.dup` or `NB1-37781.dup` file without specifying the `updater.elf` file. However, should the upgrade fail, your modem may end up in recovery mode and you will need the `updater.elf` file again. The updater will check for this and prompt you if using the `updater.elf` file is necessary.
+After you have updated your modem once using the recovery method, you can now flash your modem again using just the `firmware.dup` or `updiff_XXXX_to_XXXX.dup` file without specifying the `updater.elf` file. However, should the upgrade fail, your modem may end up in recovery mode and you will need the `updater.elf` file again. The updater will check for this and prompt you if using the `updater.elf` file is necessary.
 
 Example output using just the firmware file:
 
