@@ -714,7 +714,7 @@ class LeaderData:
         if node is None:
             print("Node is None %d"%mac)
             return bytes()
-        # pack type: RouterData or Child (basicaly NeighborData)
+        # pack type: RouterData or Child (basically NeighborData)
         data = pack('!B', role)
         data = data + node.pack()
         return data

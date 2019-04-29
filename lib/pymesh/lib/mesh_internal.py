@@ -98,7 +98,7 @@ class MeshInternal:
         if lora is None:
             # lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868,
             #             bandwidth=LoRa.BW_125KHZ, sf=7)
-            lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868, frequency = 863000000, bandwidth=LoRa.BW_250KHZ, sf=7)
+            lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868, frequency = 863000000, bandwidth=LoRa.BW_500KHZ, sf=7)
 
         self.lora = lora
         # enable Thread interface
@@ -116,7 +116,7 @@ class MeshInternal:
         self.file_packsize = 0
         self.file_size  = 0
         self.send_f = None
-        pass
+        pass                 
 
     def create_socket(self):
         """ create UDP socket """
@@ -133,13 +133,24 @@ class MeshInternal:
                 mess.last_tx_ts = time.time()
                 self.send_message(mess)
                 mess.state = Message.MESS_STATE_SENT
-            elif mess.state == Message.MESS_STATE_SENT:
-                # try to resend
-                if time.time() - mess.last_tx_ts > 15:
-                    print("Re-transmit %x %s" % (mac, mess.ip))
-                    mess.last_tx_ts = time.time()
-                    self.send_message(mess)
+            # elif mess.state == Message.MESS_STATE_SENT:
+            #     # try to resend
+            #     if time.time() - mess.last_tx_ts > 15:
+            #         print("Re-transmit %x %s" % (mac, mess.ip))
+            #         mess.last_tx_ts = time.time()
+            #         self.send_message(mess)
         pass
+
+    def send_message(self, message, answer = None):
+        """ actual sending of a message on socket """
+        payload = message.pack(self.MAC, answer)
+        pack_type = self.PACK_MESSAGE
+        if message.type == message.TYPE_IMAGE:
+            pack_type = self.PACK_FILE_SEND
+        if payload:
+            print("Send message ", payload)
+            self.send_pack(pack_type, payload, message.ip)
+        pass 
 
     def is_connected(self):
         # if detached erase all leader_data
@@ -176,7 +187,7 @@ class MeshInternal:
         # ask each router
         self.leader_ts = time.time()
         router_list = self.mesh.routers_rloc_list(60)
-        router_num = min(len(router_list), 5) 
+        router_num = min(len(router_list), 5)
         idx = 0
         for router_pair in router_list[:router_num]:
             (age, router) = router_pair
@@ -206,75 +217,21 @@ class MeshInternal:
         if not self.rx_cb_registered:
             self.rx_cb_registered = True
             self.mesh.mesh.rx_cb(self.receive_all_data, None)
-        
+
         # update internal neighbor table
         self.mesh.neighbors_update()
 
         self.mesh.leader_add_own_neigh()
 
-        # if file to be sent
-        if self.send_f is not None:
-            data, ip = self.send_f.process(None)
-            if len(data) > 0:
-                self.send_pack(self.PACK_FILE_SEND, data, ip)
+        # # if file to be sent
+        # if self.send_f is not None:
+        #     data, ip = self.send_f.process(None)
+        #     if len(data) > 0:
+        #         self.send_pack(self.PACK_FILE_SEND, data, ip)
 
-        if self.mesh.state == self.mesh.STATE_LEADER:
-            self._process_leader()
-        # elif self.mesh.state == self.mesh.STATE_LEADER:
+        # if self.mesh.state == self.mesh.STATE_LEADER:
         #     self._process_leader()
-        # else:
-        #    print("No Router or Leader with neigh")
         return
-
-    # def resolve_mac(self, mac):
-    #     """ convert a MAC address into an IP, returns None if MAC not in this Mesh """
-    #     mac_ip = None
-    #     try:
-    #         mac = int(mac)
-    #     except:
-    #         return None
-
-    #     # check if mac is own address ;)
-    #     if mac == self.MAC:
-    #         print("Resolved own address")
-    #         mac_ip = self.mesh.rloc16
-    #         return mac_ip
-
-    #     # first, Maybe the mac is a neighbor
-    #     mac_ip = self.mesh.neighbor_resolve_mac(mac)
-    #     if mac_ip is not None:
-    #         print("Mac %x found as neighbor %x" % (mac, mac_ip.rloc16))
-    #         return mac_ip.rloc16
-
-    #     # TODO: check if mac is in router table (don't need to interrogate server)
-    #     mac_ip = self.mesh.routers_rloc_list(300, mac)
-
-    #     if mac_ip is None:
-    #         # interrogate Leader and wait for Leader answer
-    #         self.require_leader_data()
-
-    #         # search for MAC
-    #         mac_ip = self.mesh.resolve_mac_from_leader_data(mac)
-
-    #     if mac_ip is not None:
-    #         print("Mac %x found as IP %x" % (mac, mac_ip))
-    #     # return results
-    #     return mac_ip
-
-    # def require_leader_data(self):
-    #     # if current Node is Leader, we already have latest Leader Data
-    #     if self.mesh.state in (self.mesh.STATE_LEADER, self.mesh.STATE_LEADER_SINGLE):
-    #         return True
-
-    #     # maybe we have a recent Leader Data
-    #     if (time.time() - self.interrogate_leader_ts < self.LEADER_INTERVAL and
-    #             self.mesh.leader_data.records_num() > 0):
-    #         return True
-
-    #     leader_ip = self.mesh._rloc_ip_net_addr() + self.mesh.LEADER_DEFAULT_RLOC
-
-    #     self.send_pack(self.PACK_ROUTER_ASK_LEADER_DATA, '', leader_ip)
-    #     return False
 
     def _check_to_send(self, pack_type, ip):
         send_it = True
@@ -380,10 +337,6 @@ class MeshInternal:
 
         return node_data
 
-    def send_message(self, message):
-        """ actuall sending of a message on socket """
-        return self.send_pack(self.PACK_MESSAGE, message.pack(self.MAC), message.ip)
-
     def receive_all_data(self, arg):
         """ receives all packages on socket """
 
@@ -393,7 +346,7 @@ class MeshInternal:
                 break  # out of while, no packet
             rcv_ip = rcv_addr[0]
             rcv_port = rcv_addr[1]
-            print('Incomming %d bytes from %s (port %d):' %
+            print('Incoming %d bytes from %s (port %d):' %
                   (len(rcv_data), rcv_ip, rcv_port))
             # print(rcv_data)
 
@@ -426,6 +379,7 @@ class MeshInternal:
                 print("PACK_MESSAGE received")
                 # add new pack received
                 message = Message(rcv_data)
+                print(message.payload)
                 message.ip = rcv_ip
                 self.messages.add_rcv_message(message)
                 # send back ACK
@@ -472,31 +426,42 @@ class MeshInternal:
 
             elif type == self.PACK_FILE_SEND:
                 print("PACK_FILE_SEND received")
-                self.send_pack(self.PACK_FILE_SEND_ACK, '123', rcv_ip)
-                chunk = len(rcv_data)
+                payload = pack("!Q", self.MAC)
+                self.send_pack(self.PACK_FILE_SEND_ACK, payload, rcv_ip)
+                # rcv data contains '!QHH' as header
+                chunk = len(rcv_data) -12
                 self.file_size += chunk
-                #print("\r%7d " % size, end="")
                 print("size: %d, chunk %d" % (self.file_size, chunk))
+                file_handler = "ab" # append, by default
                 if chunk > self.file_packsize:
                     # started receiving a new file
-                    self.file = open('/flash/dog_rcv.jpg', "wb")
-                    self.file.write(rcv_data)
+                    print("started receiving a new image")
+                    file_handler = "wb" # write/create new file
                     self.file_packsize = chunk
                 elif chunk < self.file_packsize:
+                    print("DONE receiving the image")
                     # done receiving the file
-                    self.file.write(rcv_data)
-                    self.file.close()
                     self.file_packsize = 0
                     self.file_size = 0
-                else:
-                    #middle of the file, just write data
-                    self.file.write(rcv_data)
+                    self.messages.file_transfer_done(rcv_data[:12])
+                # else:
+                #     #middle of the file, just write data
+                #     self.file.write(rcv_data)
+                with open('/flash/dog_rcv.jpg', file_handler) as file:
+                    file.write(rcv_data[12:])
+                    print("writing the image")
+
 
             elif type == self.PACK_FILE_SEND_ACK:
-                print("PACK_FILE_SEND_ACK received")
-                data, _ = self.send_f.process(rcv_data)
-                if len(data) > 0:
-                    self.send_pack(self.PACK_FILE_SEND, data, rcv_ip)
+                mac_rcv = unpack("!Q", rcv_data)
+                print("PACK_FILE_SEND_ACK received from MAC %d"%mac_rcv)
+                mac_rcv = 6
+                message = self.messages.dict.get(mac_rcv, None)
+                if message:
+                    print("message found")
+                    self.send_message(message, rcv_data)
+                else:
+                    print("message NOT found ", mac_rcv, self.messages.dict)
 
             else:
                 print("Unknown packet, type: 0x%X" % (type))
@@ -506,72 +471,8 @@ class MeshInternal:
             #self.mesh.blink(3, .1)
         pass
 
-    def send_file(self, ip, packsize, filename):
-        self.send_f = Send_File(packsize, filename, ip)
-        data, _ = self.send_f.process(None)
-        self.send_pack(self.PACK_FILE_SEND, data, ip)
+    # def send_file(self, ip, packsize, filename):
+    #     self.send_f = Send_File(packsize, filename, ip)
+    #     data, _ = self.send_f.process(None)
+    #     self.send_pack(self.PACK_FILE_SEND, data, ip)
 
-class Send_File:
-    INIT = const(1)
-    WAIT_ACK = const(2)
-    DONE = const(3)
-
-    RETRIES_MAX = const(3)
-
-    def __init__(self, packsize, filename, ip):
-        self.buffer = bytearray(packsize)
-        self.mv = memoryview(self.buffer)
-        self.ip = ip
-        self.chunk = 0
-        try:
-            self.file = open(filename, "rb")
-        except:
-            print("File %s can't be opened !!!!"%filename)
-            self.state = DONE
-            return
-        self.size = 0
-        self.packsize = packsize
-        
-        self.start = time.time()
-        self.state = INIT
-    
-    def process(self, last_response):
-        if self.state == INIT:
-            self.chunk = self.file.readinto(self.buffer)
-            self.state = WAIT_ACK
-            self.retries = 0
-            self.size = self.chunk
-            self.start = time.time()
-
-        elif self.state == WAIT_ACK:
-            if last_response is not None:
-                # got ACK, send next chunk
-                self.chunk = self.file.readinto(self.buffer)
-                self.size = self.size + self.chunk
-                print("%d Bytes sent, time: %4d sec" % (self.size, time.time() - self.start))
-                if self.chunk == 0:
-                    self._end_transfer()
-                
-                self.retries = 0
-            else:
-                print("No answer, so retry?")
-                if time.time() - self.last_ts < 5:
-                    #if we just sent the retry, don't resend anything, still wait for answer
-                    print("No retry, too soon")
-                    return ('', self.ip)
-                self.retries = self.retries + 1
-
-            if self.retries > RETRIES_MAX:
-                self._end_transfer()
-            
-        elif self.state == DONE:
-            self.chunk = 0
-        
-        self.last_ts = time.time()
-        return (self.mv[:self.chunk], self.ip)
-
-    def _end_transfer(self):
-        self.state = DONE
-        print("Done sending %d B in %s sec"%(self.size, time.time() - self.start))
-        self.file.close()
-        
