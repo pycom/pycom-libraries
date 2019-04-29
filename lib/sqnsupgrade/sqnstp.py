@@ -1,11 +1,22 @@
 #!/usr/bin/env python
-# Copyright (c) 2016, Pycom Limited.
+#################################################################
 #
-# This software is licensed under the GNU GPL version 3 or any
-# later version, with permitted additional terms. For more information
-# see the Pycom Licence v1.0 document supplied with this file, or
-# available at https://www.pycom.io/opensource/licensing
-
+#  Copyright (c) 2011 SEQUANS Communications.
+#  All rights reserved.
+#
+#  This is confidential and proprietary source code of SEQUANS
+#  Communications. The use of the present source code and all
+#  its derived forms is exclusively governed by the restricted
+#  terms and conditions set forth in the SEQUANS
+#  Communications' EARLY ADOPTER AGREEMENT and/or LICENCE
+#  AGREEMENT. The present source code and all its derived
+#  forms can ONLY and EXCLUSIVELY be used with SEQUANS
+#  Communications' products. The distribution/sale of the
+#  present source code and all its derived forms is EXCLUSIVELY
+#  RESERVED to regular LICENCE holder and otherwise STRICTLY
+#  PROHIBITED.
+#
+#################################################################
 import struct
 import time
 import os
@@ -380,11 +391,17 @@ def start(elf, elfsize, serial, baud=3686400, retry=None, debug=None, AT=True, p
 
     while True:
         try:
+            if debug: print('running m.wipe')
             m.wipe()
+            if debug: print('running m.reset')
             m.reset()
+            if debug: print('running m.open_session')
             m.open_session()
+            if debug: print('running push(m)')
             push(m)
+            if debug: print('running dev.set_timeout(2)')
             dev.set_timeout(2)
+            if debug: print('running m.reset(True)')
             m.reset(True)
             return True
         except MException as ex:
