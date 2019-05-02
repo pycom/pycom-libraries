@@ -27,6 +27,8 @@ from mesh_interface import MeshInterface
 from gps import Gps
 
 from meshaging import Meshaging
+import _thread
+from cli import Cli
 
 class RXWorker:
     def __init__(self, ble_comm):
@@ -158,11 +160,7 @@ class RPCHandler:
             self.rx_worker.put(message)
 
     def demo_fn(self, *args):
-        global last_mesh_pairs, last_mesh_members
-        return {
-            'p': last_mesh_pairs,
-            'm': last_mesh_members,
-        }
+        return { 'res': 'demo_fn' }
 
     def demo_echo_fn(self, *args):
         return args
@@ -200,8 +198,7 @@ class RPCHandler:
         return last_mesh_pairs
 
 
-    def get_node_info(self, mac_id):
-        global last_mesh_node_info
+    def get_node_info(self, mac_id = ' '):
         """ Returns the debug info for a specified mac address
         takes max 10 sec
         {
@@ -223,16 +220,8 @@ class RPCHandler:
             'n': '',           # name, max. 16 chars
             }
         } """
-        #res = self.mesh.get_node_info(mac_list[0])
-        try:
-            mac = int(mac_id)
-            node_info = last_mesh_node_info.get(mac, {})
-            if len(node_info) == 0:
-                node_info = mesh.get_node_info(mac)
-            return node_info
-        except:
-            return {}
-
+        node_info = mesh.get_node_info(mac_id)
+        return node_info
 
     def send_message(self, data):
         """ sends a message with id, to m(MAC)
@@ -270,11 +259,59 @@ class RPCHandler:
             } """
         return self.mesh.get_rcv_message()
 
+    def send_image(self, data):
+        """ sends an image
+            return True if there is buffer to store it (to be sent)"""
+        print("Send Image ---------------------->>>>>>>> ", data)
+        start = 0
+        filename = 'dog_2.jpg'
+        to = 0
+        # packsize = 500
+        image = list()
+
+        try:
+            filename = data.get('fn', "image.jpg")
+            start = int(data['start'])
+            image = bytes(data['image'])
+        except:
+            print('parsing failed')
+            return False
+
+        print("Image chunk size: %d"%len(image))
+        file_handling = "ab" # append, by default
+        if start == 0:
+            file_handling = "wb" # write/create new
+
+        with open("/flash/" + filename, file_handling) as file:
+            print("file open")
+            file.write(image)
+            print("file written")
+
+        print("done")
+        return True
+
+    def stat_start(self, data):
+        # do some statistics
+        #data = {'mac':6, 'n':3, 't':30}
+        res = self.mesh.statistics_start(data)
+        print("rpc stat_start? ", res)
+        return res
+
+    def stat_status(self, data):
+        print("rpc stat_status ", data)
+        try:
+            id = int(data)
+        except:
+            id = 0
+        res = mesh.statistics_get(id)
+        print("rpc stat_status id:"+ str(id) + ", res: " + str(res))
+        return res
+
 class Watchdog:
     def __init__(self, meshaging, mesh):
         self.INTERVAL = 10
         self.meshaging = meshaging
-        self.mesh = mesh        
+        self.mesh = mesh
         self._timer = Timer.Alarm(self.interval_cb, self.INTERVAL, periodic=True)
 
     def timer_kill(self):
@@ -306,11 +343,9 @@ def on_rcv_message(message):
         'id' : message.id,
     }
 
-    if message.payload == '🐕':
-        pycom.rgbled(0xff00ff)
-
     msg = msgpack.packb(['notify', 'msg', message_data])
     rx_worker.put(msg)
+    print(message_data['payload'])
     print("%d =================  RECEIVED :) :) :) "%time.ticks_ms())
 mesh.meshaging.on_rcv_message = on_rcv_message
 
@@ -337,121 +372,46 @@ rpc_handler = RPCHandler(rx_worker, tx_worker, mesh, ble_comm)
 
 Gps.init_static()
 
-print("done !")
-
-last_mesh_pairs = []
-last_mesh_mac_list = []
-last_mesh_node_info = {}
+kill_all = False
+deepsleep_timeout = 0
 
 watchdog = Watchdog(meshaging, mesh)
 
+def deepsleep_now():
+    """ prepare scripts for graceful exit, deepsleeps if case """
+    mesh.timer_kill()
+    watchdog.timer_kill()
+    rx_worker.timer_kill()
+    ble_comm.close()
+    Gps.terminate()
+    mesh.statistics.save_all()
+    print('Cleanup code, all Alarms cb should be stopped')
+    if deepsleep_timeout > 0:
+        print('Going to deepsleep for %d seconds'%deepsleep_timeout)
+        time.sleep(1)
+        machine.deepsleep(deepsleep_timeout * 1000)
+
+def deepsleep_init(timeout):
+    """ initializes an deeppsleep sequence, that will be performed later """
+    global deepsleep_timeout, kill_all
+    deepsleep_timeout = timeout
+    kill_all = True
+    return
+
+mesh.statistics.sleep_function = deepsleep_init
+mesh.sleep_function = deepsleep_init
+
+cli = Cli(mesh, rpc_handler, ble_comm)
+cli.sleep = deepsleep_init
+
+_thread.start_new_thread(cli.process, (1, 2))
+
 try:
     while True:
+        if kill_all:
+            deepsleep_now()
 
-        # print("============ MAIN LOOP >>>>>>>>>>>")
-        # t0 = time.ticks_ms()
-        # mesh_mac_list = mesh.get_mesh_mac_list()
-        # if len(mesh_mac_list) > 0:
-        #     last_mesh_mac_list = mesh_mac_list
-        # print('mesh_mac_list ', json.dumps(last_mesh_mac_list))
-
-        # mesh_pairs = mesh.get_mesh_pairs()
-        # if len(mesh_pairs) > 0:
-        #     last_mesh_pairs = mesh_pairs
-        # print('last_mesh_pairs', json.dumps(last_mesh_pairs))
-
-        # # ask node_info for each from the mac list
-        # for mac in mesh_mac_list:
-        #     node_info = mesh.get_node_info(mac)
-        #     if len(node_info) > 0:
-        #         last_mesh_node_info[mac] = node_info
-        # print('last_mesh_node_info', json.dumps(last_mesh_node_info))
-        # print(">>>>>>>>>>> DONE MAIN LOOP ============ %d\n"%(time.ticks_ms() - t0))
-
-        # time.sleep(15)
-
-        #todo: if RPC parsing/execution error, then
-
-
-        cmd = input('>')
-
-        if cmd == 'rb':
-            print('resetting unpacker buffer')
-            rpc_handler = RPCHandler(rx_worker, tx_worker, mesh, ble_comm)
-
-        elif cmd == 'mac':
-            print(mesh.mesh.mesh.MAC)
-
-        elif cmd == 'mml':
-            #t0 = time.ticks_ms()
-            mesh_mac_list = mesh.get_mesh_mac_list()
-            if len(mesh_mac_list) > 0:
-                last_mesh_mac_list = mesh_mac_list
-            print('mesh_mac_list ', json.dumps(last_mesh_mac_list))
-
-        elif cmd == 'mni':
-            for mac in last_mesh_mac_list:
-                node_info = mesh.get_node_info(mac)
-                time.sleep(.5)
-                if len(node_info) > 0:
-                    last_mesh_node_info[mac] = node_info
-            print('last_mesh_node_info', json.dumps(last_mesh_node_info))
-            #print(">>>>>>>>>>> DONE MAIN LOOP ============ %d\n"%(time.ticks_ms() - t0))
-
-        elif cmd == 'mp':
-            mesh_pairs = mesh.get_mesh_pairs()
-            if len(mesh_pairs) > 0:
-                last_mesh_pairs = mesh_pairs
-            print('last_mesh_pairs', json.dumps(last_mesh_pairs))
-
-        elif cmd == 's':
-            to = int(input('(to)<'))
-            txt = input('(txt)<')
-            data = {
-                'to': to,
-                'b': txt or 'Hello World!',
-                'id': 12345,
-                'ts': int(time.time()),
-            }
-            print(rpc_handler.send_message(data))
-
-        elif cmd == 'ws':
-            to = int(input('(to)<'))
-            print(rpc_handler.send_message_was_sent(to, 12345))
-
-        elif cmd == 'rm':
-            print(rpc_handler.receive_message())
-
-        elif cmd == 'gg':
-            print("Gps:", (Gps.lat, Gps.lon))
-
-        elif cmd == 'gs':
-            lat = float(input('(lat)<'))
-            lon = float(input('(lon)<'))
-            Gps.set_location(lat, lon)
-            print("Gps:", (Gps.lat, Gps.lon))
-
-        elif cmd == 'f':
-            try:
-                to = int(input('(MAC to)<'))
-                packsize = int(input('(packsize)<'))
-                filename = input('(filename, Enter for dog.jpg)<')
-                if len(filename) == 0:
-                    filename = 'dog.jpg'
-                ip = mesh.mesh.mesh.ip_mac_unique(to)
-            except:
-                continue
-            mesh.send_file(ip, packsize, filename)
-
-        elif cmd == 'exit':
-            print('exit!')
-            break
-
-        elif cmd == "rst":
-            print("Mesh Reset... ")
-            mesh.mesh.mesh.mesh.deinit()
-            #mesh.mesh.lora.Mesh()
-            machine.reset()
+        time.sleep(.1)
         pass
 
 except KeyboardInterrupt:
@@ -459,9 +419,5 @@ except KeyboardInterrupt:
 except Exception as e:
     sys.print_exception(e)
 finally:
-    mesh.timer_kill()
-    watchdog.timer_kill()
-    rx_worker.timer_kill()
-    ble_comm.close()
-    Gps.terminate()
-    print('Cleanup code, all Alarms cb should be stopped')
+    deepsleep_now()
+

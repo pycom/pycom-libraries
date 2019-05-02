@@ -1,5 +1,3 @@
-VERSION = "1.0.0"
-
 # Copyright (c) 2019, Pycom Limited.
 #
 # This software is licensed under the GNU GPL version 3 or any
@@ -8,18 +6,25 @@ VERSION = "1.0.0"
 # available at https://www.pycom.io/opensource/licensing
 
 from network import Bluetooth
-
+import time
 import msgpack
+
+VERSION = "1.0.0"
 
 class BleCommunication:
 
     def __init__(self, mesh_mac):
+        self.mesh_mac = mesh_mac
+        self._init()
+    
+    def _init(self):
         self.status = {
             'connected' : False
         }
 
-        bluetooth = Bluetooth(modem_sleep=False)
-        bluetooth.set_advertisement(name='PyGo (mac:' + str(mesh_mac) + ')', service_uuid=0xec00)
+        #bluetooth = Bluetooth(modem_sleep=False)
+        bluetooth = Bluetooth()
+        bluetooth.set_advertisement(name='PyGo (mac:' + str(self.mesh_mac) + ')', service_uuid=0xec00)
 
         bluetooth.callback(trigger=Bluetooth.CLIENT_CONNECTED | Bluetooth.CLIENT_DISCONNECTED, handler=self.conn_cb)
         bluetooth.advertise(True)
@@ -55,3 +60,18 @@ class BleCommunication:
         bluetooth.disconnect_client()
         bluetooth.deinit()
         pass
+
+    def restart(self):
+        print("BLE disconnnect client")
+        bluetooth = Bluetooth()
+        bluetooth.disconnect_client()
+        time.sleep(2)
+        self.status['connected'] = False
+        if self.on_disconnect:
+            self.on_disconnect()
+
+        # bluetooth.deinit()
+        # time.sleep(1)
+        # self._init()
+        pass
+        
