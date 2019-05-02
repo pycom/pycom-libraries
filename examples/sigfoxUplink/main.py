@@ -13,5 +13,5 @@ s.setblocking(True)
 # configure it as uplink only
 s.setsockopt(socket.SOL_SIGFOX, socket.SO_RX, False)
 
-# send some bytes 
-s.send(bytes([0x01, 0x02, 0x03])
+# send some bytes
+s.send(bytes([0x01, 0x02, 0x03]))
