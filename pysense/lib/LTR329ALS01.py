@@ -61,7 +61,7 @@ class LTR329ALS01:
 
         self.gain = gain
         self.integration = integration
-        
+
         contr = self._getContr(gain)
         self.i2c.writeto_mem(ALS_I2CADDR, ALS_CONTR_REG, bytearray([contr]))
 
@@ -91,14 +91,17 @@ class LTR329ALS01:
         return (data0, data1)
 
     def lux(self):
-        # Calculate Lux value from formula in Appendix A of the datasheet
+        # Calculate Lux value from formular in Appendix A of the datasheet
         light_level = self.light()
-        ratio = light_level[1]/(light_level[0]+light_level[1])
-        if ratio < 0.45:
-            return (1.7743 * light_level[0] + 1.1059 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
-        elif ratio < 0.64 and ratio >= 0.45:
-            return (4.2785 * light_level[0] - 1.9548 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
-        elif ratio < 0.85 and ratio >= 0.64:
-            return (0.5926 * light_level[0] + 0.1185 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+        if light_level[0]+light_level[1] > 0:
+            ratio = light_level[1]/(light_level[0]+light_level[1])
+            if ratio < 0.45:
+                return (1.7743 * light_level[0] + 1.1059 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+            elif ratio < 0.64 and ratio >= 0.45:
+                return (4.2785 * light_level[0] - 1.9548 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+            elif ratio < 0.85 and ratio >= 0.64:
+                return (0.5926 * light_level[0] + 0.1185 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+            else:
+                return 0
         else:
             return 0
