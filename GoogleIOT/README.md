@@ -6,7 +6,7 @@
 
 Pycom Firmware >= 1.20.0.rc11
 
-You will need to setup a Google IoT core registry as described here:
+You will need to setup a Google IoT core registry as described here: https://cloud.google.com/iot/docs/quickstart#create_a_device_registry
 
 During the activation please collect the following informations: 'project_id',
  'cloud_region' and 'registry_id'.
