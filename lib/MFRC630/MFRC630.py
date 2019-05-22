@@ -1,6 +1,6 @@
 '''
 Pyscan NFC library
-Copyright (c) 2018, Pycom Limited.
+Copyright (c) 2019, Pycom Limited.
 
 Based on a library for NXP's MFRC630 NFC IC https://github.com/iwanders/MFRC630
 

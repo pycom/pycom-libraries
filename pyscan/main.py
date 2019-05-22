@@ -1,6 +1,6 @@
 '''
 Simple Pyscan NFC / MiFare Classic Example
-Copyright (c) 2018, Pycom Limited.
+Copyright (c) 2019, Pycom Limited.
 
 This example runs the NFC discovery loop in a thread.
 If a card is detected it will read the UID and compare it to VALID_CARDS

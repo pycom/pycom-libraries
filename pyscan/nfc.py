@@ -1,6 +1,6 @@
 '''
 Simple Pyscan NFC / MiFare Classic Example
-Copyright (c) 2018, Pycom Limited.
+Copyright (c) 2019, Pycom Limited.
 
 This example continuously sends a REQA for ISO14443A card type
 If a card is discovered, it will read the UID

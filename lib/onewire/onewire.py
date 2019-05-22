@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 """
 OneWire library for MicroPython

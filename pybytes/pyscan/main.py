@@ -1,7 +1,16 @@
-# main.py -- put your code here!
+#!/usr/bin/env python
+#
+# Copyright (c) 2019, Pycom Limited.
+#
+# This software is licensed under the GNU GPL version 3 or any
+# later version, with permitted additional terms. For more information
+# see the Pycom Licence v1.0 document supplied with this file, or
+# available at https://www.pycom.io/opensource/licensing
+#
+
 '''
 Simple Pyscan NFC / MiFare Classic Example
-Copyright (c) 2018, Pycom Limited.
+Copyright (c) 2019, Pycom Limited.
 This example runs the NFC discovery loop in a thread.
 If a card is detected it will read the UID and compare it to VALID_CARDS
 RGB LED is BLUE while waiting for card,
