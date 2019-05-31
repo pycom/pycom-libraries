@@ -13,6 +13,7 @@ from ota import OTAHandler
 import signal
 import time
 import config
+import sys
 
 exit = False
 client = None
@@ -48,3 +49,4 @@ if __name__ == '__main__':
         pass
 
     ota.stop()
+    sys.exit(0)

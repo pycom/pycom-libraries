@@ -24,6 +24,10 @@ class OTAHandler:
     MSG_HEADER = b'$OTA'
     MSG_TAIL = b'*'
     MSG_END = b'<!EOF>'
+    
+    FULL_UPDATE = b'F'
+    DIFF_UPDATE = b'D'
+    NO_UPDATE = b'N'
 
     UPDATE_INFO_MSG = 1
     UPDATE_INFO_REPLY = 2
@@ -182,7 +186,7 @@ class OTAHandler:
             version = self.get_latest_version()
             if LooseVersion(version) > LooseVersion(dev_version):
                 self._init_update_params(dev_eui, dev_version, version)
-            msg = self._create_update_info_msg(version)
+            msg = self._create_update_info_msg(version, dev_version)
             self.send_payload(dev_eui, msg)
             
     def get_device_version(self, msg):
@@ -241,23 +245,35 @@ class OTAHandler:
             upater = updateHandler(dev_version, latest_version, self._clientApp, self._loraserver_jwt, multicast_group_id, self)
             
             self.multicast_updaters.append(upater)
+            
+    def _get_update_type(self, need_updating, device_version):
+        update_type = b',' + self.NO_UPDATE
+        print(os.path.isdir(self.firmware_dir + '/' + device_version))
+        if need_updating:
+            if os.path.isdir(self.firmware_dir + '/' + device_version):
+                return b',' + self.DIFF_UPDATE
+            else:
+                return b',' + self.FULL_UPDATE
+        
+        return update_type
     
-    def _create_update_info_msg(self, version):
+    def _create_update_info_msg(self, version, device_version):
         msg = bytearray()
         msg.extend(self.MSG_HEADER)
         msg.extend(b',' + str(self.UPDATE_INFO_REPLY).encode())
-        msg.extend(b',' + str(int(self._next_update > 0)).encode())
         msg.extend(b',' + version.encode())
-        msg.extend(b',' + str(int(time.time())).encode())
-        if self._next_update > 0:
+        need_updating = self._next_update > 0
+        update_type = self._get_update_type(need_updating, device_version)
+        msg.extend(update_type)
+        if need_updating:
             msg.extend(b',' + str(int(self._next_update)).encode())
         else:
             msg.extend(b',-1')
+        msg.extend(b',' + str(int(time.time())).encode())
         msg.extend(b',' + self.MSG_TAIL)
-       
         return msg
     
     def send_payload(self, dev_eui, data):
         b64Data = base64.b64encode(data)
         payload = '{"reference": "abcd1234" ,"fPort":1,"data": "' + b64Data.decode() + '"}'
-        self.p_client.publish(topic="application/1/device/" + dev_eui + "/tx",payload=payload)
+        self.p_client.publish(topic="application/" + str(config.LORASERVER_APP_ID) + "/device/" + dev_eui + "/tx",payload=payload)
