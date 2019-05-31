@@ -24,6 +24,10 @@ class LoraOTA:
     MSG_HEADER = b'$OTA'
     MSG_TAIL = b'*'
 
+    FULL_UPDATE = b'F'
+    DIFF_UPDATE = b'D'
+    NO_UPDATE = b'N'
+
     UPDATE_INFO_MSG = 1
     UPDATE_INFO_REPLY = 2
 
@@ -46,6 +50,7 @@ class LoraOTA:
         self.version_file = '/flash/OTA_INFO.py'
         self.update_version = '0.0.0'
         self.update_time = -1
+        self.update_type = None
         self.resp_received = False
         self.update_in_progress = False
         self.operation_timeout = 10
@@ -221,13 +226,13 @@ class LoraOTA:
 
         try:
             token_msg = msg.split(",")
-            need_updating = int(token_msg[2])
-            if need_updating:
-                self.update_version = token_msg[3]
-                self.update_time = int(token_msg[5])
+            self.update_type = token_msg[3].encode()
+            if self.update_type in [self.FULL_UPDATE, self.DIFF_UPDATE]:
+                self.update_version = token_msg[2]
+                self.update_time = int(token_msg[4])
 
             if utime.time() < 1550000000:
-                self.sync_clock(int(token_msg[4]))
+                self.sync_clock(int(token_msg[5]))
 
         except Exception as ex:
             print("Exception getting update information: {}".format(ex))
@@ -374,7 +379,8 @@ class LoraOTA:
 
             to_patch = ''
             print('Updating file: {}'.format(key))
-            if self.file_exists('/flash/' + key):
+            if self.update_type == self.DIFF_UPDATE and \
+               self.file_exists('/flash/' + key):
                 to_patch = self._read_file(key)
 
             patched_text, success = self.dmp.patch_apply(self.patch_list, to_patch)
@@ -426,7 +432,7 @@ class LoraOTA:
         return False
 
     def process_manifest_msg(self, msg):
-    
+
         if self.manifest_failure(msg):
             print('Manifest failure: Discarding update ...')
             self.reset_update_params()
@@ -443,7 +449,8 @@ class LoraOTA:
     def process_filename_msg(self, msg):
         self.file_to_patch = self.get_msg_data(msg)
 
-        if self.file_exists('/flash/' + self.file_to_patch):
+        if self.update_type == self.DIFF_UPDATE and \
+           self.file_exists('/flash/' + self.file_to_patch):
             self.device_mainfest["update"] += 1
             print("Update file: {}".format(self.file_to_patch))
         else:

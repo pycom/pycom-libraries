@@ -15,10 +15,10 @@ import machine
 import utime
 
 def main():
-    print('Rebooting with new firmware version 1.17.1')
-    
+    print('Booting with firmware version 1.17.1')
+
     LORA_FREQUENCY = 868100000
-    LORA_NODE_DR = 0
+    LORA_NODE_DR = 5
     LORA_REGION = LoRa.EU868
     LORA_DEVICE_CLASS = LoRa.CLASS_C
     LORA_ACTIVATION = LoRa.OTAA
