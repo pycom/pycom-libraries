@@ -39,12 +39,14 @@ while True:
     break
 
 # create UDP socket
+sockets = []
 s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 myport = 1234
 s.bind(myport)
+sockets.append(s)
 
 # handler responisble for receiving packets on UDP Pymesh socket
-def receive_pack():
+def receive_pack(sockets):
     # listen for incomming packets
     while True:
         rcv_data, rcv_addr = s.recvfrom(128)
@@ -65,7 +67,7 @@ def receive_pack():
 pack_num = 1
 msg = "Hello World! MAC: " + MAC + ", pack: "
 ip = mesh.ip()
-mesh.mesh.rx_cb(receive_pack)
+mesh.mesh.rx_cb(receive_pack,sockets)
 
 # infinite main loop
 while True:
