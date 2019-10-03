@@ -6,7 +6,6 @@
 # see the Pycom Licence v1.0 document supplied with this file, or
 # available at https://www.pycom.io/opensource/licensing
 
-from network import LoRa
 import socket
 import time
 import utime
@@ -15,8 +14,20 @@ import pycom
 from machine import Timer
 from struct import *
 
-from loramesh import Loramesh
-from meshaging import Meshaging, Message
+try:
+    from loramesh import Loramesh
+except:
+    from _loramesh import Loramesh
+
+try:
+    from meshaging import *
+except:
+    from _meshaging import *
+
+try:
+    from pymesh_debug import print_debug
+except:
+    from _pymesh_debug import print_debug
 
 __version__ = '6'
 """
@@ -36,6 +47,16 @@ __version__ = '3'
 
 class MeshInternal:
     """ Class for internal protocol inside Mesh network """
+
+################################################################################
+    # Border router constants
+
+    BR_NET_ADDRESS = '2001:cafe:cafe:cafe::/64'
+
+    EXTERNAL_NET = '1:2:3:4::'
+    BR_HEADER_FMT = '!BHHHHHHHHH'
+    BR_MAGIC_BYTE = const(0xBB)
+    PACK_BR = const(0x90)
 
 ################################################################################
 
@@ -93,16 +114,10 @@ class MeshInternal:
 
 ################################################################################
 
-    def __init__(self, meshaging, lora=None):
+    def __init__(self, meshaging, config, message_cb):
         """ Constructor """
-        if lora is None:
-            # lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868,
-            #             bandwidth=LoRa.BW_125KHZ, sf=7)
-            lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868, frequency = 863000000, bandwidth=LoRa.BW_500KHZ, sf=7)
-
-        self.lora = lora
         # enable Thread interface
-        self.mesh = Loramesh(self.lora)
+        self.mesh = Loramesh(config)
 
         self.MAC = self.mesh.MAC
         self.sock = None
@@ -116,13 +131,18 @@ class MeshInternal:
         self.file_packsize = 0
         self.file_size  = 0
         self.send_f = None
-        pass                 
+        self.br_handler = None
+        self.EXTERNAL_IP = self.EXTERNAL_NET + hex(self.MAC & 0xFFFF)[2:]
+        self.ext_mesh_ts = -30
+        self.message_cb = message_cb
+        self.br_message_cb = None
+        pass
 
     def create_socket(self):
         """ create UDP socket """
         self.sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
         self.sock.bind(self.PORT_MESH_INTERNAL)
-        print("Socket created on port %d" % self.PORT_MESH_INTERNAL)
+        print_debug(5, "Socket created on port %d" % self.PORT_MESH_INTERNAL)
 
     def process_messages(self):
         """ consuming message queue """
@@ -148,9 +168,9 @@ class MeshInternal:
         if message.type == message.TYPE_IMAGE:
             pack_type = self.PACK_FILE_SEND
         if payload:
-            print("Send message ", payload)
+            print_debug(4, "Send message " + str(payload))
             self.send_pack(pack_type, payload, message.ip)
-        pass 
+        pass
 
     def is_connected(self):
         # if detached erase all leader_data
@@ -197,15 +217,47 @@ class MeshInternal:
             if idx < router_num:
                 time.sleep(.5)
 
+    def br_send(self, data):
+        """ if BR is available in whole Mesh, send some data """
+        ret = False
+        # first, make sure this node is not BR (BR data is sent directly)
+        if len(self.mesh.mesh.border_router()) > 0:
+            print("Node is BR, so shouldn't send data to another BR")
+            return False
+
+        # check if we have a BR network prefix in ipaddr
+        for ip in self.mesh.ipaddr():
+            if ip.startswith(self.BR_NET_ADDRESS[0:-4]):
+                print("found BR address: ", ip)
+                if time.time() - self.ext_mesh_ts > 5:
+                    ret = True
+                    try:
+                        ip = data['ip']
+                        port = int(data['port'])
+                        payload = data['b']
+                    except:
+                        print("Error parsing packet for Mesh-external")
+                        ret = False
+                    if ret:
+                        self.send_pack(self.PACK_BR, payload, ip, port)
+                        # self.send_pack(self.PACK_BR, self.debug_data(False), self.EXTERNAL_IP)
+                        self.ext_mesh_ts = time.time()
+                else:
+                    print("BR sending too fast")
+                    ret = False
+        if not ret:
+            print("no BR (mesh-external IPv6) found")
+        return ret
+
     def process(self):
         self.mesh.update_internals()
         self.mesh.led_state()
-        print("%d: MAC %s, State %s, Single %s" % (time.time(),
-            hex(self.MAC), self.mesh.state_string(), str(self.mesh.mesh.single())))
-        print(self.mesh.ipaddr())
+        print_debug(3, "%d: MAC %s(%d), State %s, Single %s" % (time.time(),
+            hex(self.MAC), self.MAC, self.mesh.state_string(), str(self.mesh.mesh.single())))
+        print_debug(3, self.mesh.ipaddr())
         leader = self.mesh.mesh.leader()
         if leader is not None:
-            print("Leader: mac %s, rloc %s, net: %s" %
+            print_debug(3,"Leader: mac %s, rloc %s, net: %s" %
                   (hex(leader.mac), hex(leader.rloc16), hex(leader.part_id)))
         if not self.mesh.is_connected():
             return  # nothing to do
@@ -232,6 +284,53 @@ class MeshInternal:
         # if self.mesh.state == self.mesh.STATE_LEADER:
         #     self._process_leader()
         return
+
+    def debug_data(self, br = True):
+        """ Creating a debug string """
+        if br:
+            # BR can send more data
+            data = "%d: MAC %s(%d), State %s, Single %s" % (time.time(),
+                hex(self.MAC), self.MAC, self.mesh.state_string(), str(self.mesh.mesh.single()))
+            data = data + "\n" + str(self.mesh.ipaddr())
+            data = data + "\n" + str(self.mesh.mesh.routers())
+            data = data + "\n" + str(self.mesh.mesh.neighbors())
+        else:
+            # normal node sends data over Mesh to BR, so less/compressed data
+            data = "%d: M=%d, %s," % (time.time(), self.MAC, self.mesh.state_string())
+            data = data +" nei:" + str(self.mesh.mesh.neighbors())
+        return data
+
+    def border_router(self, enable, prio = 0, br_mess_cb = None):
+        """ Disables/Enables the Border Router functionality, with priority and callback """
+        net_list = self.mesh.mesh.border_router()
+        print("State:", enable, "BR: ", net_list)
+
+        if not enable:
+            # disable all BR network registrations (possible multiple)
+            self.br_handler = None
+            for net in net_list:
+                self.mesh.mesh.border_router_del(net.net)
+            print("Done remove BR")
+        else:
+            self.br_handler = br_mess_cb
+            # check if BR already added
+            try:
+                # print(net[0].net)
+                # print(self.BR_NET_ADDRESS)
+                # if net[0].net != self.BR_NET_ADDRESS:
+                if not net_list[0].net.startswith(self.BR_NET_ADDRESS[0:-3]):
+                    # enable BR
+                    self.mesh.mesh.border_router(self.BR_NET_ADDRESS, prio)
+                    print("Done add BR")
+            except:
+                # enable BR
+                self.mesh.mesh.border_router(self.BR_NET_ADDRESS, prio)
+                print("Force add BR")
+
+        # print again the BR, to confirm
+        net_list = self.mesh.mesh.border_router()
+        print("BR: ", net_list)
+        pass
 
     def _check_to_send(self, pack_type, ip):
         send_it = True
@@ -292,7 +391,7 @@ class MeshInternal:
 
         len2 = len(data)
         if len1 != len2:
-            print("PACK_HEADER lenght not ok %d %d" % (len1, len2))
+            print("PACK_HEADER length not ok %d %d" % (len1, len2))
             print(data)
             return
 
@@ -350,6 +449,29 @@ class MeshInternal:
                   (len(rcv_data), rcv_ip, rcv_port))
             # print(rcv_data)
 
+            # check if Node is BR
+            if self.br_handler:
+                #check if data is for the external of the Pymesh (for Pybytes)
+                if rcv_data[0] == self.BR_MAGIC_BYTE and len(rcv_data) >= calcsize(self.BR_HEADER_FMT):
+                    br_header = unpack(self.BR_HEADER_FMT, rcv_data)
+                    print("BR pack, IP dest: %x:%x:%x:%x:%x:%x:%x:%x (port %d)"%(
+                        br_header[1],br_header[2],br_header[3],br_header[4],
+                        br_header[5],br_header[6],br_header[7],br_header[8], br_header[9]))
+                    rcv_data = rcv_data[calcsize(self.BR_HEADER_FMT):]
+
+                    dest_ip = "%x:%x:%x:%x:%x:%x:%x:%x"%(
+                        br_header[1],br_header[2],br_header[3],br_header[4],
+                        br_header[5],br_header[6],br_header[7],br_header[8])
+                    
+                    dest_port = br_header[9]
+
+                    print(rcv_data)
+                    (type, rcv_data) = self.get_type(rcv_data)
+                    print(rcv_data)
+
+                    self.br_handler(rcv_ip, rcv_port, rcv_data, dest_ip, dest_port)
+                    return # done, no more parsing as this pack was for BR
+
             # check packet type
             (type, rcv_data) = self.get_type(rcv_data)
             # LEADER
@@ -382,8 +504,13 @@ class MeshInternal:
                 print(message.payload)
                 message.ip = rcv_ip
                 self.messages.add_rcv_message(message)
+
                 # send back ACK
                 self.send_pack(self.PACK_MESSAGE_ACK, message.pack_ack(self.MAC), rcv_ip)
+
+                # forward message to user-application layer
+                if self.message_cb:
+                    self.message_cb(rcv_ip, rcv_port, message.payload)
 
 
             elif type == self.PACK_MESSAGE_ACK:
@@ -475,4 +602,3 @@ class MeshInternal:
     #     self.send_f = Send_File(packsize, filename, ip)
     #     data, _ = self.send_f.process(None)
     #     self.send_pack(self.PACK_FILE_SEND, data, ip)
-

@@ -14,7 +14,6 @@ __version__ = '1'
 * initial version
 """
 
-
 class Meshaging:
     """ class that manages sending/receiving messages inside Mesh network """
 
@@ -50,8 +49,8 @@ class Meshaging:
         if message.payload == b'dog':#🐕':
             message.payload = 'Picture started receiving'
             print('Rcv mess about dog, so we start receiving picture')
-        else:
-            print('payload is not dog')
+        # else:
+        #     print('payload is not dog')
 
         if self.on_rcv_message:
             self.on_rcv_message(message)

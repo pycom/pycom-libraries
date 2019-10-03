@@ -11,10 +11,12 @@ import msgpack
 
 VERSION = "1.0.0"
 
-class BleCommunication:
+class BleServices:
 
-    def __init__(self, mesh_mac):
-        self.mesh_mac = mesh_mac
+    def __init__(self, ble_name):
+        # self.mesh_mac = mesh_mac
+        self.ble_name = ble_name
+        self.on_disconnect = None
         self._init()
     
     def _init(self):
@@ -22,9 +24,12 @@ class BleCommunication:
             'connected' : False
         }
 
-        #bluetooth = Bluetooth(modem_sleep=False)
-        bluetooth = Bluetooth()
-        bluetooth.set_advertisement(name='PyGo (mac:' + str(self.mesh_mac) + ')', service_uuid=0xec00)
+        bluetooth = Bluetooth(modem_sleep=False)
+        # bluetooth = Bluetooth()
+        # bluetooth.set_advertisement(name='PyGo (mac:' + str(self.mesh_mac) + ')', service_uuid=0xec00)
+        adv_name = self.ble_name
+        bluetooth.set_advertisement(name=adv_name, service_uuid=0xec00)
+        print("BLE name:", adv_name)
 
         bluetooth.callback(trigger=Bluetooth.CLIENT_CONNECTED | Bluetooth.CLIENT_DISCONNECTED, handler=self.conn_cb)
         bluetooth.advertise(True)

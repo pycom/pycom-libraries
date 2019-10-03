@@ -14,7 +14,11 @@ import ubinascii
 import pycom
 
 from struct import *
-from gps import Gps
+
+try:
+    from pymesh_debug import print_debug
+except:
+    from _pymesh_debug import print_debug
 
 __version__ = '6'
 """
@@ -55,18 +59,24 @@ class Loramesh:
     # Leader has an unicast IPv6: fdde:ad00:beef:0:0:ff:fe00:fc00
     LEADER_DEFAULT_RLOC = 'fc00'
 
-    def __init__(self, lora):
+    def __init__(self, config):
         """ Constructor """
-        self.lora = lora
-        self.mesh = lora.Mesh() #start Mesh
+        self.config = config
+        config_lora = config.get('LoRa')
+        self.lora = LoRa(mode=LoRa.LORA, 
+            region = config_lora.get("region"), 
+            frequency = config_lora.get("freq"), 
+            bandwidth = config_lora.get("bandwidth"), 
+            sf = config_lora.get("sf"))
+        self.mesh = self.lora.Mesh() #start Mesh
 
         # get Lora MAC address
         #self.MAC = str(ubinascii.hexlify(lora.mac()))[2:-1]
-        self.MAC = int(str(ubinascii.hexlify(lora.mac()))[2:-1], 16)
+        self.MAC = int(str(ubinascii.hexlify(self.lora.mac()))[2:-1], 16)
 
         #last 2 letters from MAC, as integer
         self.mac_short = self.MAC & 0xFFFF #int(self.MAC[-4:], 16)
-        print("LoRa MAC: %s, short: %s"%(hex(self.MAC), self.mac_short))
+        print_debug(5, "LoRa MAC: %s, short: %s"%(hex(self.MAC), self.mac_short))
 
         self.rloc16 = 0
         self.rloc = ''
@@ -252,7 +262,7 @@ class Loramesh:
 
         """
         x = self.mesh.neighbors()
-        print("Neighbors Table: %s"%x)
+        print_debug(3,"Neighbors Table: %s"%x)
 
         if x is None:
             # bad read, just keep previous neigbors
@@ -264,7 +274,7 @@ class Loramesh:
         self.router_data.rloc16 = self.rloc16
         self.router_data.role = self.state
         self.router_data.ts = time.time()
-        self.router_data.coord = Gps.get_location()
+        self.router_data.coord = (1,2) #Gps.get_location()
 
         for nei_rec in x:
             # nei_rec = (role=3, rloc16=10240, rssi=0, age=28, mac=5)

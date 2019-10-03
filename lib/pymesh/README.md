@@ -1,11 +1,9 @@
 # Pymesh micropython code
 
 This project exemplifies the use of Pycom's proprietary LoRa Mesh network - **Pymesh**.
-These scripts were created and tested on Lopy4 and Fipy, using the minimum release as [1.20.0.rc8](https://forum.pycom.io/topic/4499/firmware-release-candidate-v1-20-0-rc8).
+These scripts were created and tested on Lopy4 and Fipy, using the Pymesh binary release.
 
-Official Pymesh docs: https://docs.pycom.io/firmwareapi/pycom/network/lora/pymesh.html
-
-Simple Pymesh example: https://docs.pycom.io/tutorials/lora/lora-mesh.html
+Official Pymesh docs: https://docs.pycom.io/pymesh/
 
 Forum Pymesh announcements: https://forum.pycom.io/topic/4449/pymesh-updates
 
@@ -15,7 +13,7 @@ These scripts were created to prototype different features of Pymesh.
 They are quite monolithic, as they were developed on par with firmware Pymesh development. Multiple improvement are foreseen to be further performed, into areas like modularity (BLE RPC is the main candidate). Also lots of code is executed in micropython threads, which have limited memory (they should be moved in the *main loop*). Maybe queues for RX/TX on Pymesh should be added, with automatic retransmissions until ACK.
 
 ### Important features
-* Start Pymesh over LoRa on 863Mhz, bandwidth 250kHz, spreading-factor 7 (check MeshInternal constructor).
+* Start Pymesh over LoRa on 863Mhz, bandwidth 250kHz, spreading-factor 7 (check `pymesh_config.py` defaults).
 * Pymesh parameters are automatically saved in NVM, so in the next restart/deepsleep, the node will try to maintain its IP addresses and connections with neighbour nodes.
 * Start BLE server with name `PyGo (mac: <LoRa MAC>`
   * BLE is used with an RPC protocol, packed using `msgpack` library .
@@ -32,6 +30,27 @@ The LED color represents the state of the node in the Mesh network.
     Cyan               - SINGLE LEADER (no other Router in the same Pymesh)
 
 ## Internal CLI
+
+```
+List of available commands
+ip - display current IPv6 unicast addresses
+mac - set or display the current LoRa MAC address
+self - display all info about current node
+mml - display the Mesh Mac List (MAC of all nodes inside this Mesh), also inquires Leader
+mp - display the Mesh Pairs (Pairs of all nodes connections), also inquires Leader
+s - send message
+ws - verifies if message sent was acknowledged
+rm - verifies if any message was received
+sleep - deep-sleep
+br - enable/disable or display the current Border Router functionality
+brs - send packet for Mesh-external, to BR, if any
+rst - reset NOW, including NVM Pymesh IPv6
+buf - display buffer info
+ot - sends command to openthread internal CLI
+debug - set debug level
+config - print config file contents
+```
+
 ```
 >mac
 1
@@ -98,6 +117,9 @@ PACK_FILE_SEND_ACK received
 6165 Bytes sent, time:   27 sec
 Done sending 6165 B in 27 sec
 ```
+
+*DISABLED*
+
 Sends a file already stored in `/flash` (by default `/flash/dog.jpg`), specifying to which Node and in what chunk size (it can't be bigger than 500 Bytes, limit set in firmware).
 
 At destination, the file is stored as `/flash/dog_rcv.jpg`.
@@ -111,12 +133,18 @@ Picture files could be stored on Lopy4/Fipy using either Pymakr (over USB) or FT
 (lon)<4.5
 Gps: (2.3, 4.5)
 ```
+
+*DISABLED*
+
 Sets localisation coordinates; useful where no Pytrack is used.
 
 ```
 >gg
 Gps: (2.2, 1.1)
 ```
+
+*DISABLED*
+
 Shows latest GPS coordinates.
 
 ```
@@ -128,23 +156,16 @@ Resets the Pymesh parameters saved in NVM, and resets the Node.
 ```
 > rb
 ```
-Resets BLE RPC buffer.
 
-## LoRa MAC address Set/Read
+*DISABLED*
 
-### Set LoRa Mac
-```python
-fo = open("/flash/sys/lpwan.mac", "wb")
-mac_write=bytes([0,0,0,0,0,0,0,20])
-fo.write(mac_write)
-fo.close()
-```
+### New commands to be detailed
 
-### Read LoRa MAC address
-```python
->>> from network import LoRa
->>> lora = LoRa(mode=LoRa.LORA, region=LoRa.EU868, frequency = 863000000, bandwidth=LoRa.BW_125KHZ, sf=7)
->>> import ubinascii
->>> ubinascii.hexlify(lora.mac())
-b'0000000000000006'
-```
+* sleep - deep-sleep
+* br - enable/disable or display the current Border Router functionality
+* brs - send packet for Mesh-external, to BR, if any
+* rst - reset NOW, including NVM Pymesh IPv6
+* buf - display buffer info
+* ot - sends command to openthread internal CLI
+* debug - set debug level
+* config - print config file contents

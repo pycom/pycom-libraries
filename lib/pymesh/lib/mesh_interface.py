@@ -8,12 +8,31 @@
 
 import time
 from machine import Timer
-#import _thread
+import _thread
 
-from mesh_internal import MeshInternal
-from statistics import Statistics
+try:
+    from mesh_internal import MeshInternal
+except:
+    from _mesh_internal import MeshInternal
 
-__version__ = '3'
+try:
+    from statistics import Statistics
+except:
+    from _statistics import Statistics
+
+try:
+    from meshaging import Meshaging
+except:
+    from _meshaging import Meshaging
+
+try:
+    from pymesh_debug import print_debug
+    from pymesh_debug import debug_level
+except:
+    from _pymesh_debug import print_debug
+    from _pymesh_debug import debug_level
+
+__version__ = '4'
 """
 * added file send/receive debug
 
@@ -30,13 +49,24 @@ class MeshInterface:
 
     INTERVAL = const(10)
 
-    def __init__(self, meshaging, lock):
-        self.lock = lock #_thread.allocate_lock()
-        self.meshaging = meshaging
-        self.mesh = MeshInternal(self.meshaging)
+    def __init__(self, config, message_cb):
+        self.lock = _thread.allocate_lock()
+        self.meshaging = Meshaging(self.lock)
+        self.config = config
+        self.mesh = MeshInternal(self.meshaging, config, message_cb)
         self.sleep_function = None
         self.single_leader_ts = 0
 
+        # Pybytes debugging
+        self.pyb_dbg = False
+        self.pyb_ts = 0
+        self.pyb_timeout = 1000000
+        self.pyb_data = "No data"
+        self.br_auto = False
+        self.mesh.br_handler = self.br_handler
+
+        self.end_device_m = False
+        
         self.statistics = Statistics(self.meshaging)
         self._timer = Timer.Alarm(self.periodic_cb, self.INTERVAL, periodic=True)
 
@@ -48,7 +78,7 @@ class MeshInterface:
     def periodic_cb(self, alarm):
         # wait lock forever
         if self.lock.acquire():
-            print("============ MESH THREAD >>>>>>>>>>> ")
+            print_debug(2, "============ MESH THREAD >>>>>>>>>>> ")
             t0 = time.ticks_ms()
 
             self.mesh.process()
@@ -56,25 +86,30 @@ class MeshInterface:
                 self.statistics.process()
                 self.mesh.process_messages()
 
-            # if Single Leader for 3 mins should reset
-            if self.mesh.mesh.state == self.mesh.mesh.STATE_LEADER and self.mesh.mesh.mesh.single():
-                if self.single_leader_ts == 0:
-                    # first time Single Leader, record time
-                    self.single_leader_ts = time.time()
-                print("Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single(),
-                    time.time() - self.single_leader_ts)
+            # if connected to Pybytes enable/disable BR
+            # if self.pyb_dbg:
+            #     # self.mesh.border_router(Pybytes_wrap.is_connected())
+            #     self.pybytes_process()
 
-                if time.time() - self.single_leader_ts > 180:
-                    print("Single Leader, just reset")
-                    if self.sleep_function:
-                        self.sleep_function(1)
-            else:
-                # print("Not Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single())
-                self.single_leader_ts = 0
+            # if Single Leader for 3 mins should reset
+            # if self.mesh.mesh.state == self.mesh.mesh.STATE_LEADER and self.mesh.mesh.mesh.single():
+            #     if self.single_leader_ts == 0:
+            #         # first time Single Leader, record time
+            #         self.single_leader_ts = time.time()
+            #     print("Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single(),
+            #         time.time() - self.single_leader_ts)
+
+            #     if time.time() - self.single_leader_ts > 180:
+            #         print("Single Leader, just reset")
+            #         if self.sleep_function:
+            #             self.sleep_function(1)
+            # else:
+            #     # print("Not Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single())
+            #     self.single_leader_ts = 0
 
             self.lock.release()
 
-            print(">>>>>>>>>>> DONE MESH THREAD ============ %d\n"%(time.ticks_ms() - t0))
+            print_debug(2, ">>>>>>>>>>> DONE MESH THREAD ============ %d\n"%(time.ticks_ms() - t0))
 
         pass
 
@@ -118,7 +153,7 @@ class MeshInterface:
             self.lock.release()
         return ip
 
-    def get_node_info(self, mac_id):
+    def get_node_info(self, mac_id = ""):
         data = {}
         try:
             mac = int(mac_id)
@@ -134,6 +169,11 @@ class MeshInterface:
         ## WARNING: is locking required for just adding
         ret = False
 
+        # check if message is for BR
+        if len(data.get('ip','')) > 0:
+            with self.lock:
+                self.mesh.br_send(data)
+            return
         # check input parameters
         try:
             mac = int(data['to'])
@@ -197,3 +237,106 @@ class MeshInterface:
         res = self.statistics.status(id)
         print(res)
         return res
+
+    def pybytes_process(self):
+        """ Send data to Pybytes periodically, called from Mesh Task """
+        # if not self.pyb_dbg:
+        #     return
+        if time.time() - self.pyb_ts > self.pyb_timeout:
+            # with self.lock:
+            self.pyb_data = self.mesh.debug_data()
+
+            # send data to Pybytes
+            # res = Pybytes_wrap.send_signal(self.mesh.MAC, self.pyb_data)
+            self.pyb_ts = time.time()
+        pass
+
+    def pybytes_config(self, state, timeout = 60):
+        """ Configure sending data to Pybytes """
+        self.pyb_dbg = state
+        self.pyb_timeout = timeout
+
+        # just set timestamp back, to make sure we're sending first call
+        if self.pyb_dbg:
+            self.pyb_ts = time.time() - self.pyb_timeout
+
+        print("Sending Pybytes packets %s, every %s sec"%(self.pyb_dbg, self.pyb_timeout))
+        pass
+
+    def br_handler(self, id, data):
+        """ sending data NOW to Pybytes """
+        if not self.pyb_dbg:
+            return
+        print("Sending BR data to Pybytes")
+        # res = Pybytes_wrap.send_signal(self.mesh.MAC, id + ": " + str(data))
+        pass
+    
+    def br_set(self, enable, prio = 0, br_mess_cb = None):
+        with self.lock:
+            self.mesh.border_router(enable, prio, br_mess_cb)
+    
+    def ot_cli(self, command):
+        """ Executes commands in Openthread CLI,
+        see https://github.com/openthread/openthread/tree/master/src/cli """
+        return self.mesh.mesh.mesh.cli(command)
+
+    def end_device(self, state = None):
+        if state is None:
+            # read status of end_device
+            state = self.ot_cli('routerrole') 
+            return state == 'Disabled'
+        self.end_device_m = False
+        state_str = 'enable'
+        if state == True:
+            self.end_device_m = True
+            state_str = 'disable'
+        ret = self.ot_cli('routerrole '+ state_str) 
+        return ret == ''
+
+    def leader_priority(self, weight = None):
+        if weight is None:
+            # read status of end_device
+            ret = self.ot_cli('leaderweight')
+            try:
+                weight = int(ret)
+            except:
+                weight = -1
+            return weight
+        try:
+            x = int(weight)
+        except:
+            return False
+        # weight should be uint8, positive and <256
+        if weight > 0xFF:
+            weight = 0xFF
+        elif weight < 0:
+            weight = 0
+        ret = self.ot_cli('leaderweight '+ str(weight))
+        return ret == ''
+
+    def debug_level(self, level = None):
+        if level is None:
+            try:
+                ret = pycom.nvs_get('pymesh_debug')
+            except:
+                ret = None
+            return ret
+        try:
+            ret = int(level)
+        except:
+            ret = self.debug_level
+        debug_level(ret)
+        
+    def parent(self):
+        """ Returns the Parent MAC for the current Child node
+        Returns 0 if node is not Child """
+         
+        if self.mesh.mesh.mesh.state() != self.mesh.mesh.STATE_CHILD:
+            print("Not Child, no Parent")
+            return 0
+        # try:
+        parent_mac = int(self.mesh.mesh.mesh.cli('parent').split('\r\n')[0].split('Ext Addr: ')[1], 16)
+        # except:
+            # parent_mac = 0
+        print('Parent mac is:', parent_mac)
+        return parent_mac
