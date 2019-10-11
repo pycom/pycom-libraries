@@ -390,7 +390,7 @@ class NanoGateway:
             except usocket.timeout:
                 pass
             except OSError as ex:
-                if ex.errno != errno.EAGAIN:
+                if ex.args[0] != errno.EAGAIN:
                     self._log('UDP recv OSError Exception: {}', ex)
             except Exception as ex:
                 self._log('UDP recv Exception: {}', ex)
