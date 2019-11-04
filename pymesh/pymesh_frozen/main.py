@@ -18,7 +18,11 @@ def new_message_cb(rcv_ip, rcv_port, rcv_data):
     print(rcv_data)
 
     # user code to be inserted, to send packet to the designated Mesh-external interface
-    # ...
+    for _ in range(3):
+        pycom.rgbled(0x888888)
+        time.sleep(.2)
+        pycom.rgbled(0)
+        time.sleep(.1)
     return
 
 
@@ -30,11 +34,11 @@ pymesh_config = PymeshConfig.read_config()
 #initialize Pymesh
 pymesh = Pymesh(pymesh_config, new_message_cb)
 
-mac = pymesh.mac()
-if mac > 10:
-    pymesh.end_device(True)
-elif mac == 5:
-    pymesh.leader_priority(255)
+# mac = pymesh.mac()
+# if mac > 10:
+#     pymesh.end_device(True)
+# elif mac == 5:
+#     pymesh.leader_priority(255)
 
 while not pymesh.is_connected():
     print(pymesh.status_str())
@@ -58,7 +62,7 @@ pymesh.send_mess(5, "Hello World")
 # pymesh.br_set(PymeshConfig.BR_PRIORITY_NORM, new_br_message_cb)
 
 # remove Border Router function from current node
-#pymesh.br_remove()
+# pymesh.br_remove()
 
 # send data for Mesh-external, basically to the BR
 # ip = "1:2:3::4"
