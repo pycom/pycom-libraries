@@ -24,6 +24,11 @@ try:
 except:
     from _pymesh_config import PymeshConfig
 
+try:
+    from gps import Gps
+except:
+    from _gps import Gps
+
 class BleRpc:
 
     def __init__(self, config, mesh):
@@ -223,9 +228,9 @@ class RPCHandler:
         ip = self.mesh.ip()
         return ip
 
-    def set_gps(self, lng, lat):
+    def set_gps(self, latitude, longitude):
         print('settings gps!')
-        # Gps.set_location(lat, lng)
+        Gps.set_location(latitude, longitude)
         # with open('/flash/gps', 'w') as fh:
         #     fh.write('{};{}'.format(lng, lat))
 

@@ -102,6 +102,7 @@ class Pymesh:
                 # Pybytes_wrap.process()
                     
                 time.sleep(.5)
+                # time.sleep(1)
                 # print("loop")
                 pass
 

@@ -8,7 +8,7 @@
 
 import pycom
 
-# debug level from the most verbose to off
+# recommended debug levels, from the most verbose to off
 DEBUG_DEBG = const(5)
 DEBUG_INFO = const(4)
 DEBUG_NOTE = const(3)

@@ -20,6 +20,11 @@ try:
 except:
     from _pymesh_debug import print_debug
 
+try:
+    from gps import Gps
+except:
+    from _gps import Gps
+
 __version__ = '6'
 """
 __version__ = '6'
@@ -274,7 +279,7 @@ class Loramesh:
         self.router_data.rloc16 = self.rloc16
         self.router_data.role = self.state
         self.router_data.ts = time.time()
-        self.router_data.coord = (1,2) #Gps.get_location()
+        self.router_data.coord = Gps.get_location()
 
         for nei_rec in x:
             # nei_rec = (role=3, rloc16=10240, rssi=0, age=28, mac=5)
@@ -452,7 +457,7 @@ class Loramesh:
             data['a'] = node.age
         elif role is self.STATE_ROUTER:
             data['a'] = time.time() - node.ts
-            data['l'] = {'lng':node.coord[1], 'lat':node.coord[0]}
+            data['l'] = {'lat':node.coord[0], 'lng':node.coord[1]}
             data['nn'] = node.neigh_num()
             nei_macs = node.get_macs_set()
             data['nei'] = list()
@@ -534,7 +539,7 @@ class RouterData:
         self.ts = 0
         self.dict = {}
         self.pack_index_last = 0
-        self.coord = (0.0, 0.0)
+        self.coord = Gps.get_location()
 
         if data is None:
             return
@@ -624,8 +629,8 @@ class RouterData:
         dict['ip'] = self.rloc16
         dict['role'] = self.role
         dict['age'] = time.time() - self.ts
-        dict['loc'] = self.coord[0]
-        dict['ble'] = self.coord[1]
+        dict['loc'] = {"lat":self.coord[0], "lng":self.coord[1]}
+        dict['ble'] = "ble"
         return dict
 
     def get_all_pairs(self):

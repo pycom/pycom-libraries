@@ -25,8 +25,6 @@ class BleServices:
         }
 
         bluetooth = Bluetooth(modem_sleep=False)
-        # bluetooth = Bluetooth()
-        # bluetooth.set_advertisement(name='PyGo (mac:' + str(self.mesh_mac) + ')', service_uuid=0xec00)
         adv_name = self.ble_name
         bluetooth.set_advertisement(name=adv_name, service_uuid=0xec00)
         print("BLE name:", adv_name)

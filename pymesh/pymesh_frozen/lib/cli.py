@@ -15,6 +15,11 @@ try:
 except:
     from _pymesh_debug import print_debug
 
+try:
+    from gps import Gps
+except:
+    from _gps import Gps
+
 __version__ = '1'
 """
 * initial draft
@@ -41,7 +46,9 @@ class Cli:
             while True:
                 time.sleep(.1)
                 cmd = input('>')
-                # print(cmd)
+                # cmd = " "
+                # time.sleep(3)
+                # print("cli")
 
                 # if cmd == 'rb':
                 #     print('resetting unpacker buffer')
@@ -118,14 +125,16 @@ class Cli:
                 elif cmd == 'rm':
                     print(self.mesh.get_rcv_message())
 
-                # elif cmd == 'gg':
-                #     print("Gps:", (Gps.lat, Gps.lon))
-
-                # elif cmd == 'gs':
-                #     lat = float(input('(lat)<'))
-                #     lon = float(input('(lon)<'))
-                #     Gps.set_location(lat, lon)
-                #     print("Gps:", (Gps.lat, Gps.lon))
+                elif cmd == 'gps':
+                    try:
+                        lat = float(input('(lat [Enter for read])<'))
+                        lon = float(input('(lon)<'))
+                    except:
+                        print("Gps:", (Gps.lat, Gps.lon))
+                        continue
+                    
+                    Gps.set_location(lat, lon)
+                    print("Gps:", (Gps.lat, Gps.lon))
 
                 elif cmd == 'sleep':
                     try:
@@ -163,11 +172,11 @@ class Cli:
                 #     res = self.mesh.statistics_get(id)
                 #     print("ok? ", res)
 
-                # elif cmd == "rst":
-                #     print("Mesh Reset NVM settings ... ")
-                #     self.mesh.mesh.mesh.mesh.deinit()
-                #     if self.sleep:
-                #         self.sleep(1)
+                elif cmd == "rst":
+                    print("Mesh Reset NVM settings ... ")
+                    self.mesh.mesh.mesh.mesh.deinit()
+                    if self.sleep:
+                        self.sleep(1)
                         
                 # elif cmd == "pyb":
                 #     # print("Pybytes debug menu, Pybytes connection is ", Pybytes_wrap.is_connected())
@@ -262,6 +271,7 @@ class Cli:
                     print("ot - sends command to openthread internal CLI")
                     print("debug - set debug level")
                     print("config - print config file contents")
+                    print("gps - get/set location coordinates")
                     
         except KeyboardInterrupt:
             print('cli Got Ctrl-C')
