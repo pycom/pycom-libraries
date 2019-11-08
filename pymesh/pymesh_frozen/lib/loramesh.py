@@ -300,7 +300,7 @@ class Loramesh:
             #    pass
         # add own info in dict
         #self.neigh_dict[self.MAC] = (0, self.rloc16, self.state, 0)
-        print("Neighbors: %s"%(self.router_data.to_string()))
+        print_debug(5, "Neighbors: %s"%(self.router_data.to_string()))
         return
 
     def leader_add_own_neigh(self):
