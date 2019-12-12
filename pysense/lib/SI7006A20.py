@@ -12,8 +12,18 @@ class SI7006A20:
 
     SI7006A20_I2C_ADDR = const(0x40)
 
+    # I2C commands
     TEMP_NOHOLDMASTER = const(0xF3)
     HUMD_NOHOLDMASTER = const(0xF5)
+    WRITE_USER_REG1 = const(0xE6)
+    READ_USER_REG1 = const(0xE7)
+    WRITE_HEATER_CTRL_REG = const(0x51)
+    READ_HEATER_CTRL_REG = const(0x11)
+
+    # Register masks and offsets
+    USER_REG1_HTR_ENABLE_MASK = const(0b00000100)
+    USER_REG1_HTR_ENABLE_OFFSET = const(0x02)
+    HTR_CTRL_REG_MASK = const(0b00001111)
 
     def __init__(self, pysense = None, sda = 'P22', scl = 'P21'):
         if pysense is not None:
@@ -45,17 +55,31 @@ class SI7006A20:
 
     def read_user_reg(self):
         """ reading the user configuration register """
-        self.i2c.writeto(SI7006A20_I2C_ADDR, bytearray([0xE7]))
+        self.i2c.writeto(SI7006A20_I2C_ADDR, bytearray([READ_USER_REG1]))
         time.sleep(0.5)
         data = self.i2c.readfrom(SI7006A20_I2C_ADDR, 1)
         return data[0]
 
     def read_heater_reg(self):
         """ reading the heater configuration register """
-        self.i2c.writeto(SI7006A20_I2C_ADDR, bytearray([0x11]))
+        self.i2c.writeto(SI7006A20_I2C_ADDR, bytearray([READ_HEATER_CTRL_REG]))
         time.sleep(0.5)
         data = self.i2c.readfrom(SI7006A20_I2C_ADDR, 1)
         return data[0]
+
+    def write_heater_reg(self, heater_value):
+        """ writing the heater configuration register """
+        # We should only set the bottom four bits of this register
+        heater_setting = heater_value & HTR_CTRL_REG_MASK
+        self.write_reg(WRITE_HEATER_CTRL_REG, heater_setting)
+
+    def heater_control(self, on_off):
+        """ turn the heater on or off """
+        # Get current settings for everything else
+        user_reg = self.read_user_reg()
+        # Set the heater bit
+        user_reg = (user_reg & ~USER_REG1_HTR_ENABLE_MASK) | (on_off << USER_REG1_HTR_ENABLE_OFFSET)
+        self.write_reg(WRITE_USER_REG1, user_reg)
 
     def read_electronic_id(self):
         """ reading electronic identifier """
