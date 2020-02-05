@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2019, Pycom Limited.
+# Copyright (c) 2020, Pycom Limited.
 #
 # This software is licensed under the GNU GPL version 3 or any
 # later version, with permitted additional terms. For more information
 # see the Pycom Licence v1.0 document supplied with this file, or
 # available at https://www.pycom.io/opensource/licensing
 #
+
+# See https://docs.pycom.io for more information regarding library specifics
 
 from machine import Pin
 from machine import I2C
@@ -25,6 +27,12 @@ class Pycoproc:
     """ class for handling the interaction with PIC MCU """
 
     I2C_SLAVE_ADDR = const(8)
+
+    PYSENSE = const(1)
+    PYTRACK = const(2)
+    PYSCAN = const(3)
+
+    BOARD_TYPE_SET = (PYSENSE, PYTRACK, PYSCAN)
 
     CMD_PEEK = const(0x0)
     CMD_POKE = const(0x01)
@@ -81,14 +89,18 @@ class Pycoproc:
 
     EXP_RTC_PERIOD = const(7000)
 
-    def __init__(self, i2c=None, sda='P22', scl='P21'):
+    def __init__(self, board_type, i2c=None, sda='P22', scl='P21'):
         if i2c is not None:
             self.i2c = i2c
         else:
-            self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl), baudrate=100000)
+            self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
+
+        if board_type not in self.BOARD_TYPE_SET:
+            raise Exception('Board type not in the set {}'.format(self.BOARD_TYPE_SET))
 
         self.sda = sda
         self.scl = scl
+        self.board_type = board_type
         self.clk_cal_factor = 1
         self.reg = bytearray(6)
         self.wake_int = False
@@ -202,11 +214,14 @@ class Pycoproc:
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
     def go_to_sleep(self, gps=True):
-        # enable or disable back-up power to the GPS receiver
-        if gps:
+        # if we have a Pytrack then enable or disable back-up power to the GPS receiver
+        if self.board_type == self.PYTRACK and gps:
+            # disable GPS only if Pytrack
             self.set_bits_in_memory(PORTC_ADDR, 1 << 7)
         else:
+            # Pysense or Pyscan or no GPS
             self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 7))
+
         # disable the ADC
         self.poke_memory(ADCON0_ADDR, 0)
 
@@ -245,7 +260,7 @@ class Pycoproc:
         self.i2c.deinit()
         Pin('P21', mode=Pin.IN)
         pulses = pycom.pulses_get('P21', 100)
-        self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl), baudrate=100000)
+        self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl))
         idx = 0
         for i in range(len(pulses)):
             if pulses[i][1] > EXP_RTC_PERIOD:
