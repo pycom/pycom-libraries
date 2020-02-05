@@ -15,7 +15,6 @@ import pycom
 from pysense import Pysense
 import machine
 
-from pysense import Pysense
 from LIS2HH12 import LIS2HH12
 from SI7006A20 import SI7006A20
 from LTR329ALS01 import LTR329ALS01
@@ -53,7 +52,3 @@ print("Battery voltage: " + str(py.read_battery_voltage()))
 time.sleep(3)
 py.setup_sleep(10)
 py.go_to_sleep()
-
-# except:
-#     import machine
-#     machine.reset()
