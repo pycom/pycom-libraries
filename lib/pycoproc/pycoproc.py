@@ -32,6 +32,8 @@ class Pycoproc:
     PYTRACK = const(2)
     PYSCAN = const(3)
 
+    BOARD_TYPE_SET = (PYSENSE, PYTRACK, PYSCAN)
+
     CMD_PEEK = const(0x0)
     CMD_POKE = const(0x01)
     CMD_MAGIC = const(0x02)
@@ -87,11 +89,14 @@ class Pycoproc:
 
     EXP_RTC_PERIOD = const(7000)
 
-    def __init__(self, i2c=None, sda='P22', scl='P21', board_type = PYTRACK):
+    def __init__(self, board_type, i2c=None, sda='P22', scl='P21'):
         if i2c is not None:
             self.i2c = i2c
         else:
             self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
+
+        if board_type not in self.BOARD_TYPE_SET:
+            raise Exception('Board type not in the set {}'.format(self.BOARD_TYPE_SET))
 
         self.sda = sda
         self.scl = scl

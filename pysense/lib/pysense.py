@@ -17,4 +17,4 @@ __version__ = '1.4.1'
 class Pysense(Pycoproc):
 
     def __init__(self, i2c=None, sda='P22', scl='P21'):
-        Pycoproc.__init__(self, i2c, sda, scl, Pycoproc.PYSENSE)
+        Pycoproc.__init__(self, Pycoproc.PYSENSE, i2c, sda, scl)
