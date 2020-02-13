@@ -1,5 +1,5 @@
 '''
-Copyright (c) 2019, Pycom Limited.
+Copyright (c) 2020, Pycom Limited.
 This software is licensed under the GNU GPL version 3 or any
 later version, with permitted additional terms. For more information
 see the Pycom Licence v1.0 document supplied with this file, or
@@ -66,7 +66,7 @@ class BleRpc:
         self.rx_worker.put(msg)
         print(message_data['payload'])
         print("%d =================  RECEIVED :) :) :) "%time.ticks_ms())
-    
+
 
     def on_rcv_ack(self, message):
         ''' hook triggered when the ACK arrived '''
@@ -77,7 +77,7 @@ class BleRpc:
         msg = msgpack.packb(['notify', 'msg-ack', message_data])
         self.rx_worker.put(msg)
         print("%d =================  ACK RECEIVED :) :) :) "%time.ticks_ms())
-    
+
     def ble_on_disconnect(self):
         ''' if BLE disconnected, it's better to re-instantiate RPC handler '''
         self.rpc_handler = RPCHandler(self.rx_worker, self.tx_worker, self.mesh, self.ble_comm)
