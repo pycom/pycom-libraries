@@ -104,8 +104,8 @@ class MeshInternal:
 
     # constants for file sending
     #FILE_SEND_PACKSIZE = const(750)
-    PACK_FILE_SEND = const(0x20)
-    PACK_FILE_SEND_ACK = const(0x21)
+    # PACK_FILE_SEND = const(0x20)
+    # PACK_FILE_SEND_ACK = const(0x21)
 
 ################################################################################
 
@@ -165,8 +165,8 @@ class MeshInternal:
         """ actual sending of a message on socket """
         payload = message.pack(self.MAC, answer)
         pack_type = self.PACK_MESSAGE
-        if message.type == message.TYPE_IMAGE:
-            pack_type = self.PACK_FILE_SEND
+        # if message.type == message.TYPE_IMAGE:
+        #     pack_type = self.PACK_FILE_SEND
         if payload:
             print_debug(4, "Send message " + str(payload))
             self.send_pack(pack_type, payload, message.ip)
@@ -551,54 +551,47 @@ class MeshInternal:
                 print("PACK_LEADER_MAC_DETAILS received")
                 self.mesh.node_info_set(rcv_data)
 
-            elif type == self.PACK_FILE_SEND:
-                print("PACK_FILE_SEND received")
-                payload = pack("!Q", self.MAC)
-                self.send_pack(self.PACK_FILE_SEND_ACK, payload, rcv_ip)
-                # rcv data contains '!QHH' as header
-                chunk = len(rcv_data) -12
-                self.file_size += chunk
-                print("size: %d, chunk %d" % (self.file_size, chunk))
-                file_handler = "ab" # append, by default
-                if chunk > self.file_packsize:
-                    # started receiving a new file
-                    print("started receiving a new image")
-                    file_handler = "wb" # write/create new file
-                    self.file_packsize = chunk
-                elif chunk < self.file_packsize:
-                    print("DONE receiving the image")
-                    # done receiving the file
-                    self.file_packsize = 0
-                    self.file_size = 0
-                    self.messages.file_transfer_done(rcv_data[:12])
-                # else:
-                #     #middle of the file, just write data
-                #     self.file.write(rcv_data)
-                with open('/flash/dog_rcv.jpg', file_handler) as file:
-                    file.write(rcv_data[12:])
-                    print("writing the image")
+            # elif type == self.PACK_FILE_SEND:
+            #     print("PACK_FILE_SEND received")
+            #     payload = pack("!Q", self.MAC)
+            #     self.send_pack(self.PACK_FILE_SEND_ACK, payload, rcv_ip)
+            #     # rcv data contains '!QHH' as header
+            #     chunk = len(rcv_data) -12
+            #     self.file_size += chunk
+            #     print("size: %d, chunk %d" % (self.file_size, chunk))
+            #     file_handler = "ab" # append, by default
+            #     if chunk > self.file_packsize:
+            #         # started receiving a new file
+            #         print("started receiving a new image")
+            #         file_handler = "wb" # write/create new file
+            #         self.file_packsize = chunk
+            #     elif chunk < self.file_packsize:
+            #         print("DONE receiving the image")
+            #         # done receiving the file
+            #         self.file_packsize = 0
+            #         self.file_size = 0
+            #         self.messages.file_transfer_done(rcv_data[:12])
+            #     # else:
+            #     #     #middle of the file, just write data
+            #     #     self.file.write(rcv_data)
+            #     with open('/flash/dog_rcv.jpg', file_handler) as file:
+            #         file.write(rcv_data[12:])
+            #         print("writing the image")
 
 
-            elif type == self.PACK_FILE_SEND_ACK:
-                mac_rcv = unpack("!Q", rcv_data)
-                print("PACK_FILE_SEND_ACK received from MAC %d"%mac_rcv)
-                mac_rcv = 6
-                message = self.messages.dict.get(mac_rcv, None)
-                if message:
-                    print("message found")
-                    self.send_message(message, rcv_data)
-                else:
-                    print("message NOT found ", mac_rcv, self.messages.dict)
+            # elif type == self.PACK_FILE_SEND_ACK:
+            #     mac_rcv = unpack("!Q", rcv_data)
+            #     print("PACK_FILE_SEND_ACK received from MAC %d"%mac_rcv)
+            #     mac_rcv = 6
+            #     message = self.messages.dict.get(mac_rcv, None)
+            #     if message:
+            #         print("message found")
+            #         self.send_message(message, rcv_data)
+            #     else:
+            #         print("message NOT found ", mac_rcv, self.messages.dict)
 
             else:
                 print("Unknown packet, type: 0x%X" % (type))
                 print(rcv_data)
 
-            # blink some LEDs
-            #self.mesh.blink(3, .1)
         pass
-
-    # def send_file(self, ip, packsize, filename):
-    #     self.send_f = Send_File(packsize, filename, ip)
-    #     data, _ = self.send_f.process(None)
-    #     self.send_pack(self.PACK_FILE_SEND, data, ip)

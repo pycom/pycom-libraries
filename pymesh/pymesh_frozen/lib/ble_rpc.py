@@ -212,11 +212,8 @@ class RPCHandler:
             #print('message', message)
             self.rx_worker.put(message)
 
-    def demo_fn(self, *args):
-        return { 'res': 'demo_fn' }
-
-    def demo_echo_fn(self, *args):
-        return args
+    # def demo_echo_fn(self, *args):
+    #     return args
 
     def mesh_is_connected(self):
         # True if Node is connected to Mesh; False otherwise
@@ -312,50 +309,50 @@ class RPCHandler:
             } """
         return self.mesh.get_rcv_message()
 
-    def send_image(self, data):
-        """ sends an image
-            return True if there is buffer to store it (to be sent)"""
-        print("Send Image ---------------------->>>>>>>> ", data)
-        start = 0
-        filename = 'dog_2.jpg'
-        to = 0
-        # packsize = 500
-        image = list()
+    # def send_image(self, data):
+    #     """ sends an image
+    #         return True if there is buffer to store it (to be sent)"""
+    #     print("Send Image ---------------------->>>>>>>> ", data)
+    #     start = 0
+    #     filename = 'dog_2.jpg'
+    #     to = 0
+    #     # packsize = 500
+    #     image = list()
 
-        try:
-            filename = data.get('fn', "image.jpg")
-            start = int(data['start'])
-            image = bytes(data['image'])
-        except:
-            print('parsing failed')
-            return False
+    #     try:
+    #         filename = data.get('fn', "image.jpg")
+    #         start = int(data['start'])
+    #         image = bytes(data['image'])
+    #     except:
+    #         print('parsing failed')
+    #         return False
 
-        print("Image chunk size: %d"%len(image))
-        file_handling = "ab" # append, by default
-        if start == 0:
-            file_handling = "wb" # write/create new
+    #     print("Image chunk size: %d"%len(image))
+    #     file_handling = "ab" # append, by default
+    #     if start == 0:
+    #         file_handling = "wb" # write/create new
 
-        with open("/flash/" + filename, file_handling) as file:
-            print("file open")
-            file.write(image)
-            print("file written")
+    #     with open("/flash/" + filename, file_handling) as file:
+    #         print("file open")
+    #         file.write(image)
+    #         print("file written")
 
-        print("done")
-        return True
+    #     print("done")
+    #     return True
 
-    def stat_start(self, data):
-        # do some statistics
-        #data = {'mac':6, 'n':3, 't':30}
-        res = self.mesh.statistics_start(data)
-        print("rpc stat_start? ", res)
-        return res
+    # def stat_start(self, data):
+    #     # do some statistics
+    #     #data = {'mac':6, 'n':3, 't':30}
+    #     res = self.mesh.statistics_start(data)
+    #     print("rpc stat_start? ", res)
+    #     return res
 
-    def stat_status(self, data):
-        print("rpc stat_status ", data)
-        try:
-            id = int(data)
-        except:
-            id = 0
-        res = self.mesh.statistics_get(id)
-        print("rpc stat_status id:"+ str(id) + ", res: " + str(res))
-        return res
+    # def stat_status(self, data):
+    #     print("rpc stat_status ", data)
+    #     try:
+    #         id = int(data)
+    #     except:
+    #         id = 0
+    #     res = self.mesh.statistics_get(id)
+    #     print("rpc stat_status id:"+ str(id) + ", res: " + str(res))
+    #     return res

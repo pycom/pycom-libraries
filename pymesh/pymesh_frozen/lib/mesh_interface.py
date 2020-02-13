@@ -15,10 +15,10 @@ try:
 except:
     from _mesh_internal import MeshInternal
 
-try:
-    from statistics import Statistics
-except:
-    from _statistics import Statistics
+# try:
+#     from statistics import Statistics
+# except:
+#     from _statistics import Statistics
 
 try:
     from meshaging import Meshaging
@@ -57,17 +57,9 @@ class MeshInterface:
         self.sleep_function = None
         self.single_leader_ts = 0
 
-        # Pybytes debugging
-        self.pyb_dbg = False
-        self.pyb_ts = 0
-        self.pyb_timeout = 1000000
-        self.pyb_data = "No data"
-        self.br_auto = False
-        self.mesh.br_handler = self.br_handler
-
         self.end_device_m = False
         
-        self.statistics = Statistics(self.meshaging)
+        # self.statistics = Statistics(self.meshaging)
         self._timer = Timer.Alarm(self.periodic_cb, self.INTERVAL, periodic=True)
 
         # just run this ASAP
@@ -83,13 +75,8 @@ class MeshInterface:
 
             self.mesh.process()
             if self.mesh.is_connected():
-                self.statistics.process()
+                # self.statistics.process()
                 self.mesh.process_messages()
-
-            # if connected to Pybytes enable/disable BR
-            # if self.pyb_dbg:
-            #     # self.mesh.border_router(Pybytes_wrap.is_connected())
-            #     self.pybytes_process()
 
             # if Single Leader for 3 mins should reset
             # if self.mesh.mesh.state == self.mesh.mesh.STATE_LEADER and self.mesh.mesh.mesh.single():
@@ -216,60 +203,27 @@ class MeshInterface:
                     'ts':ts}
         return {}
 
-    def statistics_start(self, data):
-        """ starts to do statistics based on message send/ack """
-        # data = {'mac':6, 'n':3, 't':30, 's1':10, 's2':30}
-        try:
-            # validate input params
-            mac = int(data['mac'])
-            num_mess = int(data['n'])
-            timeout = int(data['t'])
-        except:
-            print("statistics_start failed")
-            print(data)
-            return 0
-        if mac == self.mesh.MAC:
-            data['mac'] = 2
-        res = self.statistics.add_stat_mess(data)
-        return res
+    # def statistics_start(self, data):
+    #     """ starts to do statistics based on message send/ack """
+    #     # data = {'mac':6, 'n':3, 't':30, 's1':10, 's2':30}
+    #     try:
+    #         # validate input params
+    #         mac = int(data['mac'])
+    #         num_mess = int(data['n'])
+    #         timeout = int(data['t'])
+    #     except:
+    #         print("statistics_start failed")
+    #         print(data)
+    #         return 0
+    #     if mac == self.mesh.MAC:
+    #         data['mac'] = 2
+    #     res = self.statistics.add_stat_mess(data)
+    #     return res
 
-    def statistics_get(self, id):
-        res = self.statistics.status(id)
-        print(res)
-        return res
-
-    def pybytes_process(self):
-        """ Send data to Pybytes periodically, called from Mesh Task """
-        # if not self.pyb_dbg:
-        #     return
-        if time.time() - self.pyb_ts > self.pyb_timeout:
-            # with self.lock:
-            self.pyb_data = self.mesh.debug_data()
-
-            # send data to Pybytes
-            # res = Pybytes_wrap.send_signal(self.mesh.MAC, self.pyb_data)
-            self.pyb_ts = time.time()
-        pass
-
-    def pybytes_config(self, state, timeout = 60):
-        """ Configure sending data to Pybytes """
-        self.pyb_dbg = state
-        self.pyb_timeout = timeout
-
-        # just set timestamp back, to make sure we're sending first call
-        if self.pyb_dbg:
-            self.pyb_ts = time.time() - self.pyb_timeout
-
-        print("Sending Pybytes packets %s, every %s sec"%(self.pyb_dbg, self.pyb_timeout))
-        pass
-
-    def br_handler(self, id, data):
-        """ sending data NOW to Pybytes """
-        if not self.pyb_dbg:
-            return
-        print("Sending BR data to Pybytes")
-        # res = Pybytes_wrap.send_signal(self.mesh.MAC, id + ": " + str(data))
-        pass
+    # def statistics_get(self, id):
+    #     res = self.statistics.status(id)
+    #     print(res)
+    #     return res
     
     def br_set(self, enable, prio = 0, br_mess_cb = None):
         with self.lock:
@@ -327,16 +281,16 @@ class MeshInterface:
             ret = self.debug_level
         debug_level(ret)
         
-    def parent(self):
-        """ Returns the Parent MAC for the current Child node
-        Returns 0 if node is not Child """
+    # def parent(self):
+    #     """ Returns the Parent MAC for the current Child node
+    #     Returns 0 if node is not Child """
          
-        if self.mesh.mesh.mesh.state() != self.mesh.mesh.STATE_CHILD:
-            print("Not Child, no Parent")
-            return 0
-        # try:
-        parent_mac = int(self.mesh.mesh.mesh.cli('parent').split('\r\n')[0].split('Ext Addr: ')[1], 16)
-        # except:
-            # parent_mac = 0
-        print('Parent mac is:', parent_mac)
-        return parent_mac
+    #     if self.mesh.mesh.mesh.state() != self.mesh.mesh.STATE_CHILD:
+    #         print("Not Child, no Parent")
+    #         return 0
+    #     # try:
+    #     parent_mac = int(self.mesh.mesh.mesh.cli('parent').split('\r\n')[0].split('Ext Addr: ')[1], 16)
+    #     # except:
+    #         # parent_mac = 0
+    #     print('Parent mac is:', parent_mac)
+    #     return parent_mac

@@ -23,7 +23,7 @@ class PymeshConfig:
     LORA_REGION = LoRa.EU868
 
     # frequency expressed in Hz, for EU868 863000000 Hz, for US915 904600000 Hz
-    LORA_FREQ = const(863000000)
+    LORA_FREQ = const(869000000)
     
     # bandwidth options are: LoRa.BW_125KHZ, LoRa.BW_250KHZ or LoRa.BW_500KHZ
     LORA_BW = LoRa.BW_500KHZ
@@ -39,7 +39,7 @@ class PymeshConfig:
     DEBUG_LEVEL = 5
 
     # if true, it will start as BLE Server, to be connected with mobile app
-    BLE_API = True
+    BLE_API = False
     BLE_NAME_PREFIX = "PyGo "
     ############################################################
     
