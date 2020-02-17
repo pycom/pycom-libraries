@@ -1,5 +1,5 @@
 '''
-Copyright (c) 2019, Pycom Limited.
+Copyright (c) 2020, Pycom Limited.
 This software is licensed under the GNU GPL version 3 or any
 later version, with permitted additional terms. For more information
 see the Pycom Licence v1.0 document supplied with this file, or
@@ -24,11 +24,6 @@ except:
     from _cli import Cli
 
 try:
-    from ble_rpc import BleRpc
-except:
-    from _ble_rpc import BleRpc
-
-try:
     from pymesh_debug import print_debug
 except:
     from _pymesh_debug import print_debug
@@ -46,7 +41,7 @@ class Pymesh:
         self.new_lora_mac = None
         # watchdog = Watchdog(meshaging, mesh)
         
-        self.mesh.statistics.sleep_function = self.deepsleep_init
+        # self.mesh.statistics.sleep_function = self.deepsleep_init
         self.mesh.sleep_function = self.deepsleep_init
 
         self.cli = Cli(self.mesh)
@@ -56,6 +51,11 @@ class Pymesh:
         
         self.ble_rpc = None
         if config.get("ble_api", False):
+            try:
+                from ble_rpc import BleRpc
+            except:
+                from _ble_rpc import BleRpc
+
             self.ble_rpc = BleRpc(self.config, self.mesh)
 
 
@@ -67,7 +67,7 @@ class Pymesh:
             self.ble_rpc.terminate()
         # watchdog.timer_kill()
         # Gps.terminate()
-        self.mesh.statistics.save_all()
+        # self.mesh.statistics.save_all()
         print('Cleanup code, all Alarms cb should be stopped')
         if self.new_lora_mac:
             fo = open("/flash/sys/lpwan.mac", "wb")
@@ -97,13 +97,7 @@ class Pymesh:
             while True:
                 if self.kill_all:
                     self.deepsleep_now()
-
-                # sending data to pybytes
-                # Pybytes_wrap.process()
-                    
                 time.sleep(.5)
-                # time.sleep(1)
-                # print("loop")
                 pass
 
         except KeyboardInterrupt:
@@ -158,8 +152,8 @@ class Pymesh:
             'ts': 123123123,
         } """
         data = {
-            'ip': '1:2:3::4',
-            'port': 12345,
+            'ip': ip,
+            'port': port,
             'b': payload
         }
         return self.mesh.send_message(data)

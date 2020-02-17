@@ -1,5 +1,5 @@
 
-# Copyright (c) 2019, Pycom Limited.
+# Copyright (c) 2020, Pycom Limited.
 #
 # This software is licensed under the GNU GPL version 3 or any
 # later version, with permitted additional terms. For more information
@@ -44,10 +44,10 @@ class Loramesh:
     # rgb LED color for each state: disabled, detached, child, router, leader and single leader
     #RGBLED = [0x0A0000, 0x0A0000, 0x0A0A0A, 0x000A00, 0x00000A, 0x0A000A]
     RGBLED = [0x0A0000, 0x0A0000, 0x0A0A0A, 0x000A00, 0x0A000A, 0x000A0A]
-    
+
     # TTN conf mode
     #RGBLED = [0x200505, 0x200505, 0x202020, 0x052005, 0x200020, 0x001818]
-    
+
     # for outside/bright sun
     #RGBLED = [0xFF0000, 0xFF0000, 0x808080, 0x00FF00, 0x0000FF, 0xFF00FF]
 
@@ -68,10 +68,10 @@ class Loramesh:
         """ Constructor """
         self.config = config
         config_lora = config.get('LoRa')
-        self.lora = LoRa(mode=LoRa.LORA, 
-            region = config_lora.get("region"), 
-            frequency = config_lora.get("freq"), 
-            bandwidth = config_lora.get("bandwidth"), 
+        self.lora = LoRa(mode=LoRa.LORA,
+            region = config_lora.get("region"),
+            frequency = config_lora.get("freq"),
+            bandwidth = config_lora.get("bandwidth"),
             sf = config_lora.get("sf"))
         self.mesh = self.lora.Mesh() #start Mesh
 
@@ -233,18 +233,20 @@ class Loramesh:
         """ returns all unicast IPv6 addr """
         return self.mesh.ipaddr()
 
-    def ping(self, ip):
-        """ Returns ping return time, to an IP """
-        res = self.cli('ping ' + str(ip))
-        # '8 bytes from fdde:ad00:beef:0:0:ff:fe00:e000: icmp_seq=2 hlim=64 time=236ms\r\n'
-        # 'Error 6: Parse\r\n'
-        # no answer
-        ret_time = -1
-        try:
-            ret_time = int(res.split('time=')[1].split('ms')[0])
-        except Exception:
-            pass
-        return ret_time
+    # def ping(self, ip):
+    #     """ Returns ping return time, to an IP """
+    #     res = self.cli('ping ' + str(ip))
+    #     """
+    #     '8 bytes from fdde:ad00:beef:0:0:ff:fe00:e000: icmp_seq=2 hlim=64 time=236ms\r\n'
+    #     'Error 6: Parse\r\n'
+    #     no answer
+    #     """
+    #     ret_time = -1
+    #     try:
+    #         ret_time = int(res.split('time=')[1].split('ms')[0])
+    #     except Exception:
+    #         pass
+    #     return ret_time
 
     def blink(self, num = 3, period = .5, color = None):
         """ LED blink """
@@ -300,7 +302,7 @@ class Loramesh:
             #    pass
         # add own info in dict
         #self.neigh_dict[self.MAC] = (0, self.rloc16, self.state, 0)
-        print_debug(5, "Neighbors: %s"%(self.router_data.to_string()))
+        print_debug(3, "Neighbors: %s"%(self.router_data.to_string()))
         return
 
     def leader_add_own_neigh(self):
@@ -361,7 +363,7 @@ class Loramesh:
                 if resolve_mac == line.mac:
                     mac_ip = rloc16
                     break
-            
+
             # look for this router in Leader Data
             # if doesn't exist, add it to routers_list with max ts
             # if it exists, just add it with its ts
@@ -557,7 +559,7 @@ class RouterData:
         index = calcsize(self.PACK_HEADER_FMT)
         (self.mac, self.rloc16, lat, lon, neigh_num) = \
             unpack(self.PACK_HEADER_FMT, data_pack[: index])
-        
+
         self.coord = (lat, lon)
 
         self.role = Loramesh.STATE_ROUTER # forcer role as Router
@@ -790,4 +792,3 @@ class LeaderData:
             # if this mac is not a router, just return ts as the oldest
             return 0
         return router.ts
-

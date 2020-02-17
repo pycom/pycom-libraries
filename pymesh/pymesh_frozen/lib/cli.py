@@ -1,5 +1,5 @@
 
-# Copyright (c) 2019, Pycom Limited.
+# Copyright (c) 2020, Pycom Limited.
 #
 # This software is licensed under the GNU GPL version 3 or any
 # later version, with permitted additional terms. For more information
@@ -36,7 +36,7 @@ class Cli:
         # lamda functions
         self.sleep = None
         return
-    
+
     def process(self, arg1, arg2):
         last_mesh_pairs = []
         last_mesh_mac_list = []
@@ -46,13 +46,6 @@ class Cli:
             while True:
                 time.sleep(.1)
                 cmd = input('>')
-                # cmd = " "
-                # time.sleep(3)
-                # print("cli")
-
-                # if cmd == 'rb':
-                #     print('resetting unpacker buffer')
-                #     self.rpc_handler = RPCHandler(rx_worker, tx_worker, mesh, ble_comm)
 
                 if cmd == 'ip':
                     print(self.mesh.ip())
@@ -96,18 +89,17 @@ class Cli:
                 elif cmd == 's':
                     try:
                         to = int(input('(to)<'))
-                        typ = input('(type, 0=text, 1=file, Enter for text)<')
-                        if not typ:
-                            typ = 0
-                        else:
-                            typ = int(typ)
-                        txt = input('(text/filename)<')
+                        # typ = input('(type, 0=text, 1=file, Enter for text)<')
+                        # if not typ:
+                        #     typ = 0
+                        # else:
+                        #     typ = int(typ)
+                        txt = input('(message)<')
                     except:
-                        print("Command parsing failed")
                         continue
                     data = {
                         'to': to,
-                        'ty': typ,
+                        # 'ty': 0,
                         'b': txt,
                         'id': 12345,
                         'ts': int(time.time()),
@@ -132,7 +124,7 @@ class Cli:
                     except:
                         print("Gps:", (Gps.lat, Gps.lon))
                         continue
-                    
+
                     Gps.set_location(lat, lon)
                     print("Gps:", (Gps.lat, Gps.lon))
 
@@ -177,7 +169,7 @@ class Cli:
                     self.mesh.mesh.mesh.mesh.deinit()
                     if self.sleep:
                         self.sleep(1)
-                        
+
                 # elif cmd == "pyb":
                 #     # print("Pybytes debug menu, Pybytes connection is ", Pybytes_wrap.is_connected())
                 #     state = 1
@@ -228,14 +220,14 @@ class Cli:
                     data = {
                         'ip': ip,
                         'port': port,
-                        'b': payload 
+                        'b': payload
                     }
                     print("Send BR message:", data)
                     self.mesh.send_message(data)
 
                 elif cmd == "buf":
                     print("Buffer info:",self.mesh.mesh.mesh.mesh.cli("bufferinfo"))
-                    
+
                 elif cmd == "ot":
                     cli = input('(openthread cli)<')
                     print(self.mesh.mesh.mesh.mesh.cli(cli))
@@ -247,7 +239,7 @@ class Cli:
                         self.mesh.debug_level(level)
                     except:
                         print_debug(1, "error parsing")
-                
+
                 elif cmd == "config":
                     print(self.mesh.config)
 
@@ -272,7 +264,7 @@ class Cli:
                     print("debug - set debug level")
                     print("config - print config file contents")
                     print("gps - get/set location coordinates")
-                    
+
         except KeyboardInterrupt:
             print('cli Got Ctrl-C')
         except Exception as e:
