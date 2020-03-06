@@ -28,27 +28,38 @@ try:
 except:
     from _pymesh_debug import print_debug
 
+__version__ = '2'
+"""
+__version__ = '2'
+* added pause/resume
+
+__version__ = '1'
+* not-versioned prior 5th of Febr 2020
+
+"""
+
 class Pymesh:
 
     def __init__(self, config, message_cb):
         # print MAC, set MAC is given and restart
-        
+
         self.config = config
-        self.mesh = MeshInterface(config, message_cb)
+        self.mesh = MeshInterface(self.config, message_cb)
 
         self.kill_all = False
         self.deepsleep_timeout = 0
         self.new_lora_mac = None
-        # watchdog = Watchdog(meshaging, mesh)
-        
+
         # self.mesh.statistics.sleep_function = self.deepsleep_init
         self.mesh.sleep_function = self.deepsleep_init
 
-        self.cli = Cli(self.mesh)
+        self.cli = Cli(self.mesh, self)
         self.cli.sleep = self.deepsleep_init
-        _thread.start_new_thread(self.process, (1,2))
+        self.is_paused = False
+        self._threads_start()
         _thread.start_new_thread(self.cli.process, (1, 2))
-        
+
+
         self.ble_rpc = None
         if config.get("ble_api", False):
             try:
@@ -62,7 +73,7 @@ class Pymesh:
     def deepsleep_now(self):
         """ prepare scripts for graceful exit, deepsleeps if case """
         print("deepsleep_now")
-        self.mesh.timer_kill()
+        self.mesh.pause()
         if self.ble_rpc:
             self.ble_rpc.terminate()
         # watchdog.timer_kill()
@@ -97,6 +108,9 @@ class Pymesh:
             while True:
                 if self.kill_all:
                     self.deepsleep_now()
+                if self.is_paused:
+                     # break
+                     _thread.exit()
                 time.sleep(.5)
                 pass
 
@@ -104,12 +118,41 @@ class Pymesh:
             print('Got Ctrl-C')
         except Exception as e:
             sys.print_exception(e)
-        finally:
-            print('finally')
-            self.deepsleep_now()
+        # finally:
+            # print('finally')
+            # self.deepsleep_now()
+
+    def _threads_start(self):
+        _thread.start_new_thread(self.process, (1,2))
+
+    def pause(self):
+        if self.is_paused:
+            print("Pymesh already paused")
+            return
+
+        print("Pymesh pausing")
+
+        self.mesh.pause()
+        if self.ble_rpc:
+            self.ble_rpc.terminate()
+
+        self.is_paused = True
+        return
+
+    def resume(self):
+        if not self.is_paused:
+            print("Pymesh can't be resumed, not paused")
+            return
+
+        print("Pymesh resuming")
+        self.is_paused = False
+        self._threads_start()
+        self.mesh.resume()
+
+        return
 
     def send_mess(self, mac, mess):
-        """ send mess to specified MAC address 
+        """ send mess to specified MAC address
         data is dictionary data = {
             'to': 0x5,
             'b': 'text',
@@ -123,7 +166,7 @@ class Pymesh:
             'ts': time.time(),
         }
         return self.mesh.send_message(data)
-    
+
     def br_set(self, prio, br_mess_cb):
         """ Enable BR functionality on this Node, with priority and callback """
         return self.mesh.br_set(True, prio, br_mess_cb)
@@ -140,9 +183,9 @@ class Pymesh:
 
     def is_connected(self):
         return self.mesh.is_connected()
-    
+
     def send_mess_external(self, ip, port, payload):
-        """ send mess to specified IP+port address 
+        """ send mess to specified IP+port address
         data is dictionary data = {
             'ip': '1:2:3::4',
             'port': 12345,
@@ -157,13 +200,13 @@ class Pymesh:
             'b': payload
         }
         return self.mesh.send_message(data)
-    
+
     def config_get(self):
         return self.config
-    
+
     def mac(self):
         return self.mesh.mesh.MAC
-    
+
     def ot_cli(self, command):
         """ Call OpenThread internal CLI """
         return self.mesh.ot_cli(command)
@@ -187,4 +230,3 @@ class Pymesh:
             DEBUG_CRIT = const(1)
             DEBUG_NONE = const(0) """
         return self.mesh.debug_level(level)
-

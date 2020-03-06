@@ -20,16 +20,21 @@ try:
 except:
     from _gps import Gps
 
-__version__ = '1'
+__version__ = '2'
 """
+__version__ = '2'
+* added pause/resume and factory reset
+
+__version__ = '1'
 * initial draft
 """
 
 class Cli:
     """ class for CLI commands """
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, pymesh):
         self.mesh = mesh
+        self.pymesh = pymesh
         # self.rpc_handler = rpc_handler
         # self.ble_comm = ble_comm
 
@@ -166,7 +171,7 @@ class Cli:
 
                 elif cmd == "rst":
                     print("Mesh Reset NVM settings ... ")
-                    self.mesh.mesh.mesh.mesh.deinit()
+                    self.mesh.mesh.mesh.mesh.deinit(reset=True)
                     if self.sleep:
                         self.sleep(1)
 
@@ -243,6 +248,12 @@ class Cli:
                 elif cmd == "config":
                     print(self.mesh.config)
 
+                elif cmd == "pause":
+                    self.pymesh.pause()
+
+                elif cmd == "resume":
+                    self.pymesh.resume()
+
                 else:
                     print("List of available commands")
                     print("ip - display current IPv6 unicast addresses")
@@ -259,6 +270,8 @@ class Cli:
                     print("br - enable/disable or display the current Border Router functionality")
                     print("brs - send packet for Mesh-external, to BR, if any")
                     print("rst - reset NOW, including NVM Pymesh IPv6")
+                    print("pause - suspend Pymesh")
+                    print("resume - resume Pymesh")
                     print("buf - display buffer info")
                     print("ot - sends command to openthread internal CLI")
                     print("debug - set debug level")

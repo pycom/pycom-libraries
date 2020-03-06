@@ -15,11 +15,6 @@ try:
 except:
     from _mesh_internal import MeshInternal
 
-# try:
-#     from statistics import Statistics
-# except:
-#     from _statistics import Statistics
-
 try:
     from meshaging import Meshaging
 except:
@@ -32,8 +27,12 @@ except:
     from _pymesh_debug import print_debug
     from _pymesh_debug import debug_level
 
-__version__ = '4'
+__version__ = '5'
 """
+__version__ = '5'
+* added pause/resume
+
+__version__ = '3'
 * added file send/receive debug
 
 __version__ = '2'
@@ -58,14 +57,17 @@ class MeshInterface:
         self.single_leader_ts = 0
 
         self.end_device_m = False
-        
+        self.is_paused = False
+        self._start_timer()
         # self.statistics = Statistics(self.meshaging)
+
+        pass
+
+    def _start_timer(self):
         self._timer = Timer.Alarm(self.periodic_cb, self.INTERVAL, periodic=True)
 
         # just run this ASAP
         self.periodic_cb(None)
-
-        pass
 
     def periodic_cb(self, alarm):
         # wait lock forever
@@ -100,9 +102,14 @@ class MeshInterface:
 
         pass
 
-    def timer_kill(self):
+    def pause(self):
         # with self.lock:
         self._timer.cancel()
+        self.mesh.pause()
+
+    def resume(self):
+        self.mesh.resume()
+        self._start_timer()
 
     def get_mesh_mac_list(self):
         mac_list = list()
@@ -224,11 +231,11 @@ class MeshInterface:
     #     res = self.statistics.status(id)
     #     print(res)
     #     return res
-    
+
     def br_set(self, enable, prio = 0, br_mess_cb = None):
         with self.lock:
             self.mesh.border_router(enable, prio, br_mess_cb)
-    
+
     def ot_cli(self, command):
         """ Executes commands in Openthread CLI,
         see https://github.com/openthread/openthread/tree/master/src/cli """
@@ -237,14 +244,14 @@ class MeshInterface:
     def end_device(self, state = None):
         if state is None:
             # read status of end_device
-            state = self.ot_cli('routerrole') 
+            state = self.ot_cli('routerrole')
             return state == 'Disabled'
         self.end_device_m = False
         state_str = 'enable'
         if state == True:
             self.end_device_m = True
             state_str = 'disable'
-        ret = self.ot_cli('routerrole '+ state_str) 
+        ret = self.ot_cli('routerrole '+ state_str)
         return ret == ''
 
     def leader_priority(self, weight = None):
@@ -280,11 +287,11 @@ class MeshInterface:
         except:
             ret = self.debug_level
         debug_level(ret)
-        
+
     # def parent(self):
     #     """ Returns the Parent MAC for the current Child node
     #     Returns 0 if node is not Child """
-         
+
     #     if self.mesh.mesh.mesh.state() != self.mesh.mesh.STATE_CHILD:
     #         print("Not Child, no Parent")
     #         return 0

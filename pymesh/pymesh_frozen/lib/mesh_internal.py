@@ -29,8 +29,11 @@ try:
 except:
     from _pymesh_debug import print_debug
 
-__version__ = '6'
+__version__ = '7'
 """
+__version__ = '7'
+* added pause/resume
+
 __version__ = '6'
 * refactorized file send/receive in state machines
 
@@ -137,6 +140,14 @@ class MeshInternal:
         self.message_cb = message_cb
         self.br_message_cb = None
         pass
+
+    def pause(self):
+        self.rx_cb_registered = False
+        self.sock = None
+        self.mesh.pause()
+
+    def resume(self):
+        self.mesh.resume()
 
     def create_socket(self):
         """ create UDP socket """
@@ -462,7 +473,7 @@ class MeshInternal:
                     dest_ip = "%x:%x:%x:%x:%x:%x:%x:%x"%(
                         br_header[1],br_header[2],br_header[3],br_header[4],
                         br_header[5],br_header[6],br_header[7],br_header[8])
-                    
+
                     dest_port = br_header[9]
 
                     print(rcv_data)
