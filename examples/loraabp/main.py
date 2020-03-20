@@ -10,8 +10,8 @@
 
 from network import LoRa
 import socket
-import binascii
-import struct
+import ubinascii
+import ustruct
 
 # Initialize LoRa in LORAWAN mode.
 # Please pick the region that matches where you are using the device:
@@ -22,9 +22,13 @@ import struct
 lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868)
 
 # create an ABP authentication params
-dev_addr = struct.unpack(">l", binascii.unhexlify('00000005'))[0]
-nwk_swkey = binascii.unhexlify('2B7E151628AED2A6ABF7158809CF4F3C')
-app_swkey = binascii.unhexlify('2B7E151628AED2A6ABF7158809CF4F3C')
+# dev_addr @ TTN needs to be converted from little endian to big endian
+
+dev_addr_TTN = '00000005'
+dev_addr = ustruct.pack('<l',ustruct.unpack(">l", ubinascii.unhexlify(dev_addr_TTN))[0])
+
+nwk_swkey = ubinascii.unhexlify('2B7E151628AED2A6ABF7158809CF4F3C')
+app_swkey = ubinascii.unhexlify('2B7E151628AED2A6ABF7158809CF4F3C')
 
 # join a network using ABP (Activation By Personalization)
 lora.join(activation=LoRa.ABP, auth=(dev_addr, nwk_swkey, app_swkey))
