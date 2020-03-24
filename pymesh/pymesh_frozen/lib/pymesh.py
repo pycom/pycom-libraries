@@ -28,6 +28,12 @@ try:
 except:
     from _pymesh_debug import print_debug
 
+try:
+    from pymesh_config import PymeshConfig
+except:
+    from _pymesh_config import PymeshConfig
+
+
 __version__ = '2'
 """
 __version__ = '2'
@@ -202,6 +208,10 @@ class Pymesh:
         return self.mesh.send_message(data)
 
     def config_get(self):
+        return self.config
+
+    def config_set(self, config_json_dict):
+        PymeshConfig.write_config(config_json_dict)
         return self.config
 
     def mac(self):

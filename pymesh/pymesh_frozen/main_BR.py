@@ -2,7 +2,8 @@ import time
 import pycom
 
 # 2 = test pybytes OTA feature
-__VERSION__ = 3
+# 4 = added device_id (pybytes token) in the packets to BR
+__VERSION__ = 4
 
 try:
     from pymesh_config import PymeshConfig
@@ -14,8 +15,8 @@ try:
 except:
     from _pymesh import Pymesh
 
-# LoRa mac that will be self-defined as Border Routers
-MAC_BR = {2,4}
+PACK_TOCKEN_PREFIX = "tkn"
+PACK_TOCKEN_SEP = "#"
 
 print("Scripts version ", __VERSION__)
 
@@ -51,7 +52,14 @@ def new_br_message_cb(rcv_ip, rcv_port, rcv_data, dest_ip, dest_port):
         # time.sleep(.2)
 
     if pybytes is not None and pybytes.isconnected():
-        pkt = 'BR %d B from %s (%d), to %s ( %d): %s'%(len(rcv_data), rcv_ip, rcv_port, dest_ip, dest_port, str(rcv_data))
+        # try to find Pybytes Token if include in rcv_data
+        token = ""
+        if rcv_data.startswith(PACK_TOCKEN_PREFIX):
+            x = rcv_data.split(PACK_TOCKEN_SEP.encode())
+            if len(x)>2:
+                token = x[1]
+                rcv_data = rcv_data[len(PACK_TOCKEN_PREFIX) + len(token) + len(PACK_TOCKEN_SEP):]
+        pkt = 'BR %d B from %s (%s), to %s ( %d): %s'%(len(rcv_data), token, rcv_ip, dest_ip, dest_port, str(rcv_data))
         pybytes.send_signal(1, pkt)
 
     return
@@ -85,7 +93,13 @@ if pybytes is not None and pybytes.isconnected():
 
 pyb_port = pymesh.mac() & 0xFFFF
 pyb_ip = '1:2:3::' + hex(pyb_port)[2:]
-pkt_start = "Hello, from " + str(pymesh.mac()) + ", time "
+pkt_start = ""
+# add pybytes token
+if pybytes is not None:
+    pyb_dev_id = pybytes.get_config().get("device_id", "None")
+    pkt_start = PACK_TOCKEN_PREFIX + PACK_TOCKEN_SEP + pyb_dev_id + PACK_TOCKEN_SEP
+pkt_start = pkt_start + "Hello, from " + str(pymesh.mac()) + ", time "
+
 
 br_enabled = False
 
@@ -94,7 +108,7 @@ while True:
 
     free_mem = pycom.get_free_heap()
 
-    if pymesh.mac() in MAC_BR:
+    if pymesh_config.get("br_ena", False):
         if pybytes is not None and pybytes.isconnected():
             if not br_enabled:
                 br_enabled = True
