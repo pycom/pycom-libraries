@@ -4,4 +4,7 @@
 *.1
 *.conf
 .DS_Store
+*.backup
+*.key
+
 
