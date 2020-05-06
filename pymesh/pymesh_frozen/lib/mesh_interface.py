@@ -27,8 +27,11 @@ except:
     from _pymesh_debug import print_debug
     from _pymesh_debug import debug_level
 
-__version__ = '5'
+__version__ = '6'
 """
+__version__ = '6'
+* added loRa_mac field to get_node_info
+
 __version__ = '5'
 * added pause/resume
 
@@ -156,6 +159,7 @@ class MeshInterface:
             print("get_node_info own mac")
         if self.lock.acquire():
             data = self.mesh.node_info(mac)
+            data['loRa_mac'] = mac
             self.lock.release()
         return data
 
