@@ -25,8 +25,11 @@ try:
 except:
     from _gps import Gps
 
-__version__ = '6'
+__version__ = '7'
 """
+__version__ = '7'
+* added pause/resume
+
 __version__ = '6'
 * added IPv6 unicast addresses as fdde:ad00:beef:0::<MAC>
 """
@@ -66,14 +69,8 @@ class Loramesh:
 
     def __init__(self, config):
         """ Constructor """
-        self.config = config
-        config_lora = config.get('LoRa')
-        self.lora = LoRa(mode=LoRa.LORA,
-            region = config_lora.get("region"),
-            frequency = config_lora.get("freq"),
-            bandwidth = config_lora.get("bandwidth"),
-            sf = config_lora.get("sf"))
-        self.mesh = self.lora.Mesh() #start Mesh
+        self.config_lora = config.get('LoRa')
+        self._lora_init()
 
         # get Lora MAC address
         #self.MAC = str(ubinascii.hexlify(lora.mac()))[2:-1]
@@ -113,13 +110,31 @@ class Loramesh:
         self.connections_ts = -65535 # very old
 
         # set a new unicast address
-        self.unique_ip_prefix = "fdde:ad00:beef:0::"
-        command = "ipaddr add " + self.ip_mac_unique(self.mac_short)
-        self.mesh.cli(command)
+        self._add_ipv6_unicast()
+
+    def _lora_init(self):
+        self.lora = LoRa(mode=LoRa.LORA,
+            region = self.config_lora.get("region"),
+            frequency = self.config_lora.get("freq"),
+            bandwidth = self.config_lora.get("bandwidth"),
+            sf = self.config_lora.get("sf"))
+        self.mesh = self.lora.Mesh() #start Mesh
+
+    def pause(self):
+        self.mesh.deinit()
+
+    def resume(self):
+        self._lora_init()
+        self._add_ipv6_unicast()
 
     def ip_mac_unique(self, mac):
         ip = self.unique_ip_prefix + hex(mac & 0xFFFF)[2:]
         return ip
+
+    def _add_ipv6_unicast(self):
+        self.unique_ip_prefix = "fdde:ad00:beef:0::"
+        command = "ipaddr add " + self.ip_mac_unique(self.mac_short)
+        self.mesh.cli(command)
 
     def update_internals(self):
         self._state_update()

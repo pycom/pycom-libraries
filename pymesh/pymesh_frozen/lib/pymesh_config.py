@@ -12,8 +12,18 @@ from network import LoRa
 import machine
 import time
 
+__version__ = '2'
+"""
+__version__ = '2'
+* added BR_ena, BR_prio
+
+__version__ = ''
+* first release
+
+"""
+
 class PymeshConfig:
-    
+
     CONFIG_FILENAME = "/flash/pymesh_config.json"
 
     ############################################################
@@ -24,10 +34,10 @@ class PymeshConfig:
 
     # frequency expressed in Hz, for EU868 863000000 Hz, for US915 904600000 Hz
     LORA_FREQ = const(869000000)
-    
+
     # bandwidth options are: LoRa.BW_125KHZ, LoRa.BW_250KHZ or LoRa.BW_500KHZ
     LORA_BW = LoRa.BW_500KHZ
-    
+
     # spreading factor options are 7 to 12
     LORA_SF = const(7)
 
@@ -41,13 +51,18 @@ class PymeshConfig:
     # if true, it will start as BLE Server, to be connected with mobile app
     BLE_API = False
     BLE_NAME_PREFIX = "PyGo "
+
     ############################################################
-    
     # Border router preference priority
     BR_PRIORITY_NORM = const(0)
     BR_PRIORITY_LOW = const(-1)
     BR_PRIORITY_HIGH = const(1)
-    
+
+    # if true then this node is Border Router
+    BR_ENABLE = False
+    # the default BR priority
+    BR_PRIORITY = BR_PRIORITY_NORM
+
     def write_config(pymesh_config, force_restart = False):
         cf = open(PymeshConfig.CONFIG_FILENAME, 'w')
         cf.write(json.dumps(pymesh_config))
@@ -77,11 +92,11 @@ class PymeshConfig:
                 mac_write=bytes([(MAC >> 56) & 0xFF, (MAC >> 48) & 0xFF, (MAC >> 40) & 0xFF, (MAC >> 32) & 0xFF, (MAC >> 24) & 0xFF, (MAC >> 16) & 0xFF, (MAC >> 8) & 0xFF, MAC & 0xFF])
                 fo.write(mac_write)
                 fo.close()
-                print("reset")
-                PymeshConfig.write_config(pymesh_config, True)
-                
+                # print("reset")
+                PymeshConfig.write_config(pymesh_config, False)
+
         print("MAC ok", MAC)
-            
+
     def read_config():
         file = PymeshConfig.CONFIG_FILENAME
         pymesh_config = {}
@@ -100,7 +115,7 @@ class PymeshConfig:
                 print("Error reading {} file!\n Exception: {}".format(file, ex))
         except Exception as ex:
             print("Final error reading {} file!\n Exception: {}".format(file, ex))
-        
+
         if error_file:
             # config file can't be read, so it needs to be created and saved
             pymesh_config = {}
@@ -115,6 +130,9 @@ class PymeshConfig:
             pymesh_config['debug'] = PymeshConfig.DEBUG_LEVEL
             pymesh_config['ble_api'] = PymeshConfig.BLE_API
             pymesh_config['ble_name_prefix'] = PymeshConfig.BLE_NAME_PREFIX
+            pymesh_config['br_ena'] = PymeshConfig.BR_ENABLE
+            pymesh_config['br_prio'] = PymeshConfig.BR_PRIORITY
+
             print("Default settings:", pymesh_config)
             PymeshConfig.check_mac(pymesh_config)
             print("Default settings:", pymesh_config)
@@ -123,5 +141,3 @@ class PymeshConfig:
         PymeshConfig.check_mac(pymesh_config)
         print("Settings:", pymesh_config)
         return pymesh_config
-    
-

@@ -1,15 +1,15 @@
 import pycom
 import time
 
-# try:
-from pymesh_config import PymeshConfig
-# except:
-#     from _pymesh_config import PymeshConfig
+try:
+    from pymesh_config import PymeshConfig
+except:
+    from _pymesh_config import PymeshConfig
 
-# try:
-from pymesh import Pymesh
-# except:
-#     from _pymesh import Pymesh
+try:
+    from pymesh import Pymesh
+except:
+    from _pymesh import Pymesh
 
 def new_message_cb(rcv_ip, rcv_port, rcv_data):
     ''' callback triggered when a new packet arrived '''
