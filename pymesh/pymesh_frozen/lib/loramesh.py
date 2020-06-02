@@ -435,6 +435,7 @@ class Loramesh:
 
         for _ in range(n):
             mac, = unpack(MACS_FMT, data[index:])
+            mac = mac & 0xFFFF
             self.macs.add(mac)
             #print("Macs %d, %d: %s"%(index, mac, str(self.macs)))
             index = index + field_size

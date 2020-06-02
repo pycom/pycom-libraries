@@ -4,4 +4,4 @@
 *.1
 *.conf
 .DS_Store
-
+*.code-workspace

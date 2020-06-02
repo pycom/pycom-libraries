@@ -88,7 +88,8 @@ class Pymesh:
         print('Cleanup code, all Alarms cb should be stopped')
         if self.new_lora_mac:
             fo = open("/flash/sys/lpwan.mac", "wb")
-            mac_write=bytes([0, 0, 0, 0, 0, 0, (self.new_lora_mac >> 8) & 0xFF, self.new_lora_mac & 0xFF])
+            # mac_write=bytes([0, 0, 0, 0, 0, 0, (self.new_lora_mac >> 8) & 0xFF, self.new_lora_mac & 0xFF])
+            mac_write = bytes([(self.new_lora_mac >> 56) & 0xFF, (self.new_lora_mac >> 48) & 0xFF, (self.new_lora_mac >> 40) & 0xFF, (self.new_lora_mac >> 32) & 0xFF, (self.new_lora_mac >> 24) & 0xFF, (self.new_lora_mac >> 16) & 0xFF, (self.new_lora_mac >> 8) & 0xFF, self.new_lora_mac & 0xFF])
             fo.write(mac_write)
             fo.close()
             print("Really LoRa MAC set to", self.new_lora_mac)
