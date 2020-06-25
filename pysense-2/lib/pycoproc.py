@@ -122,7 +122,8 @@ class Pycoproc:
         self.sensor_power()
         self.sd_power()
 
-        if self.read_fw_version() < 6:
+        # for Pysense/Pytrack 2.0, the minimum firmware version is 15
+        if self.read_fw_version() < 15:
             raise ValueError('Firmware out of date')
 
 
