@@ -702,7 +702,7 @@ class MFRC630:
                     uid[(cascade_level - 1) * 3 + UIDn] = uid_this_level[UIDn];
 
                 # Finally, return the length of the UID that's now at the uid "pointer".
-            return cascade_level * 3 + 1;
+                return cascade_level * 3 + 1
 
         self.print_debug("Exit cascade loop nr. %d: " % cascade_level)
         self.mfrc630_print_block(uid, 10)
