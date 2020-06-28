@@ -1,6 +1,6 @@
 '''
 Simple Pyscan NFC / MiFare Classic Example
-Copyright (c) 2019, Pycom Limited.
+Copyright (c) 2020, Pycom Limited.
 
 This example runs the NFC discovery loop in a thread.
 If a card is detected it will read the UID and compare it to VALID_CARDS
@@ -20,7 +20,8 @@ import pycom
 import _thread
 
 VALID_CARDS = [[0x43, 0x95, 0xDD, 0xF8],
-               [0x43, 0x95, 0xDD, 0xF9]]
+               [0x43, 0x95, 0xDD, 0xF9],
+               [0x46, 0x5A, 0xEB, 0x7D, 0x8A, 0x08, 0x04]]
 
 py = Pyscan()
 nfc = MFRC630(py)
