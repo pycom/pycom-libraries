@@ -15,10 +15,14 @@ import os
 import time
 import utime
 import gc
+import pycom
 from machine import RTC
 from machine import SD
 from L76GNSS import L76GNSS
 from pytrack import Pytrack
+
+pycom.heartbeat(False)
+pycom.rgbled(0x0A0A08) # white
 
 time.sleep(2)
 gc.enable()
@@ -32,13 +36,23 @@ utime.timezone(7200)
 print('Adjusted from UTC to EST timezone', utime.localtime(), '\n')
 
 py = Pytrack()
+
+time.sleep(1)
 l76 = L76GNSS(py, timeout=30, buffer=512)
 
 # sd = SD()
 # os.mount(sd, '/sd')
 # f = open('/sd/gps-record.txt', 'w')
 
-while (True):
+# while (True):
+for _ in range(5):
     coord = l76.coordinates()
     #f.write("{} - {}\n".format(coord, rtc.now()))
     print("{} - {} - {}".format(coord, rtc.now(), gc.mem_free()))
+
+"""
+# sleep procedure
+time.sleep(3)
+py.setup_sleep(10)
+py.go_to_sleep()
+"""
