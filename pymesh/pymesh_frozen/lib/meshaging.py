@@ -9,6 +9,11 @@
 import time
 from struct import *
 
+try:
+    from pymesh_debug import print_debug
+except:
+    from _pymesh_debug import print_debug
+    
 __version__ = '1'
 """
 * initial version
@@ -33,10 +38,10 @@ class Meshaging:
         """ send a new message """
         already = self.dict.get(mac, None)
         if already:
-            print('old message deleted for %X' % mac)
+            print_debug(3, 'old message deleted for %X' % mac)
         message = Message((mac, msg_type, payload, id, ts))
         self.dict[mac] = message
-        print("Added new message for %X: %s" % (mac, str(payload)))
+        print_debug(3, "Added new message for %X: %s" % (mac, str(payload)))
         
         return True
 
@@ -48,9 +53,9 @@ class Meshaging:
 
         if message.payload == b'dog':#🐕':
             message.payload = 'Picture started receiving'
-            print('Rcv mess about dog, so we start receiving picture')
+            print_debug(3, 'Rcv mess about dog, so we start receiving picture')
         # else:
-        #     print('payload is not dog')
+        #     print_debug(3, 'payload is not dog')
 
         if self.on_rcv_message:
             self.on_rcv_message(message)
@@ -72,7 +77,7 @@ class Meshaging:
             # check if message was about picture sending, to start actual file sending
             mess = self.dict[message.mac]
             if mess.payload == 'dog':
-                print('ACK from dog message, start picture sending')
+                print_debug(3, 'ACK from dog message, start picture sending')
                 del self.dict[message.mac]
                 self.send_message(message.mac, message.TYPE_IMAGE, 'dog.jpg', message.id, time.time())
                 
@@ -80,7 +85,7 @@ class Meshaging:
                     mess = Message((message.mac, message.TYPE_TEXT, 'Receiving the picture', message.id+1, time.time()))
                     self.on_rcv_message(mess)
         else:
-            print(message.mac, self.dict)
+            print_debug(3, str(message.mac) + str(self.dict))
         pass
 
     def mesage_was_ack(self, mac, id):
@@ -93,7 +98,7 @@ class Meshaging:
                     done = True
         except:
             pass
-        print("ACK? mac %x, id %d => %d" % (mac, id, done))
+        print_debug(3, "ACK? mac %x, id %d => %d" % (mac, id, done))
         return done
 
     def get_rcv_message(self):
@@ -108,7 +113,7 @@ class Meshaging:
     def file_transfer_done(self, rcv_data):
         message = Message(rcv_data)
         message.payload = 'Picture was received'
-        print('Picture done receiving from %d', message.mac)
+        print_debug(3, 'Picture done receiving from %d', message.mac)
         message.id = message.id + 1
         if self.on_rcv_message:
             self.on_rcv_message(message)
@@ -161,7 +166,7 @@ class Message:
         return
 
     def _init_bytes(self, data):
-        #print('NeighborData._init_bytes %s'%str(data))
+        #print_debug(3, 'NeighborData._init_bytes %s'%str(data))
         self.mac, self.id, n = unpack(self.PACK_MESSAGE, data)
         self.payload = data[calcsize(self.PACK_MESSAGE):]
         #self.payload = unpack('!' + str(n) + 's', data[calcsize(self.PACK_MESSAGE):])
@@ -208,7 +213,7 @@ class Send_File:
         try:
             self.file = open(filename, "rb")
         except:
-            print("File %s can't be opened !!!!"%filename)
+            print_debug(3, "File %s can't be opened !!!!"%filename)
             self.state = DONE
             return
         self.size = 0
@@ -230,16 +235,16 @@ class Send_File:
                 # got ACK, send next chunk
                 self.chunk = self.file.readinto(self.buffer)
                 self.size = self.size + self.chunk
-                print("%d Bytes sent, time: %4d sec" % (self.size, time.time() - self.start))
+                print_debug(3, "%d Bytes sent, time: %4d sec" % (self.size, time.time() - self.start))
                 if self.chunk == 0:
                     self._end_transfer()
 
                 self.retries = 0
             else:
-                print("No answer, so retry?")
+                print_debug(3, "No answer, so retry?")
                 if time.time() - self.last_ts < 5:
                     #if we just sent the retry, don't resend anything, still wait for answer
-                    print("No retry, too soon")
+                    print_debug(3, "No retry, too soon")
                     return ''
                 self.retries = self.retries + 1
 
@@ -254,5 +259,5 @@ class Send_File:
 
     def _end_transfer(self):
         self.state = DONE
-        print("Done sending %d B in %s sec"%(self.size, time.time() - self.start))
+        print_debug(3, "Done sending %d B in %s sec"%(self.size, time.time() - self.start))
         self.file.close()

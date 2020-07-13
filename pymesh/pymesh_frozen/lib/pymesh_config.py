@@ -12,6 +12,11 @@ from network import LoRa
 import machine
 import time
 
+try:
+    from pymesh_debug import print_debug
+except:
+    from _pymesh_debug import print_debug
+
 __version__ = '2'
 """
 __version__ = '2'
@@ -69,7 +74,7 @@ class PymeshConfig:
         cf.close()
 
         if force_restart:
-            print("write_config force restart")
+            print_debug(3, "write_config force restart")
             time.sleep(1)
             machine.deepsleep(1000)
 
@@ -79,23 +84,23 @@ class PymeshConfig:
 
         if pymesh_config.get('MAC') is None:
             # if MAC config unspecified, set it to LoRa MAC
-            print("Set MAC in config file as ", MAC)
+            print_debug(3, "Set MAC in config file as " + str(MAC))
             pymesh_config['MAC'] = MAC
             PymeshConfig.write_config(pymesh_config, False)
         else:
             mac_from_config = pymesh_config.get('MAC')
             if mac_from_config != MAC:
-                print("MAC different", mac_from_config, MAC)
+                print_debug(3, "MAC different"+ str(mac_from_config) + str(MAC))
                 pymesh_config['MAC'] = MAC
                 # if MAC in config different than LoRa MAC, set LoRa MAC as in config file
                 fo = open("/flash/sys/lpwan.mac", "wb")
                 mac_write=bytes([(MAC >> 56) & 0xFF, (MAC >> 48) & 0xFF, (MAC >> 40) & 0xFF, (MAC >> 32) & 0xFF, (MAC >> 24) & 0xFF, (MAC >> 16) & 0xFF, (MAC >> 8) & 0xFF, MAC & 0xFF])
                 fo.write(mac_write)
                 fo.close()
-                # print("reset")
+                # print_debug(3, "reset")
                 PymeshConfig.write_config(pymesh_config, False)
 
-        print("MAC ok", MAC)
+        print_debug(3, "MAC ok" + str(MAC))
 
     def read_config():
         file = PymeshConfig.CONFIG_FILENAME
@@ -112,14 +117,14 @@ class PymeshConfig:
                 # pymesh_config['cfg_msg'] = "Pymesh configuration read from {}".format(file)
                 error_file = False
             except Exception as ex:
-                print("Error reading {} file!\n Exception: {}".format(file, ex))
+                print_debug(1, "Error reading {} file!\n Exception: {}".format(file, ex))
         except Exception as ex:
-            print("Final error reading {} file!\n Exception: {}".format(file, ex))
+            print_debug(1, "Final error reading {} file!\n Exception: {}".format(file, ex))
 
         if error_file:
             # config file can't be read, so it needs to be created and saved
             pymesh_config = {}
-            print("Can't find",file, ", or can't be parsed as json; Set default settings and reset")
+            print_debug(3, "Can't find" +str(file) + ", or can't be parsed as json; Set default settings and reset")
             # don't write MAC, just to use the hardware one
             pymesh_config['LoRa'] = {"region": PymeshConfig.LORA_REGION,
                                     "freq": PymeshConfig.LORA_FREQ,
@@ -133,11 +138,10 @@ class PymeshConfig:
             pymesh_config['br_ena'] = PymeshConfig.BR_ENABLE
             pymesh_config['br_prio'] = PymeshConfig.BR_PRIORITY
 
-            print("Default settings:", pymesh_config)
             PymeshConfig.check_mac(pymesh_config)
-            print("Default settings:", pymesh_config)
+            print_debug(3, "Default settings:" + str(pymesh_config))
             PymeshConfig.write_config(pymesh_config, True)
 
         PymeshConfig.check_mac(pymesh_config)
-        print("Settings:", pymesh_config)
+        print_debug(3, "Settings:" + str(pymesh_config))
         return pymesh_config

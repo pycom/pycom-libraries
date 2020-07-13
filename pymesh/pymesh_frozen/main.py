@@ -69,8 +69,8 @@ pymesh.send_mess(5, "Hello World")
 # port = 5555
 # pymesh.send_mess_external(ip, port, "Hello World")
 
-print("done Pymesh init, forever loop, exit/stop with Ctrl+C multiple times")
-# set BR with callback
+print("done Pymesh init, CLI is started, h - help/command list, stop - CLI will be stopped")
+pymesh.cli_start()
 
-while True:
-    time.sleep(3)
+# while True:
+#     time.sleep(3)

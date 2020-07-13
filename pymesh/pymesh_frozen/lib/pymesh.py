@@ -24,9 +24,9 @@ except:
     from _cli import Cli
 
 try:
-    from pymesh_debug import print_debug
+    from pymesh_debug import *
 except:
-    from _pymesh_debug import print_debug
+    from _pymesh_debug import *
 
 try:
     from pymesh_config import PymeshConfig
@@ -34,8 +34,12 @@ except:
     from _pymesh_config import PymeshConfig
 
 
-__version__ = '2'
+__version__ = '3'
 """
+__version__ = '3'
+* CLI can start/stop dynamically
+* replaced all print with print_debug
+
 __version__ = '2'
 * added pause/resume
 
@@ -59,12 +63,10 @@ class Pymesh:
         # self.mesh.statistics.sleep_function = self.deepsleep_init
         self.mesh.sleep_function = self.deepsleep_init
 
-        self.cli = Cli(self.mesh, self)
-        self.cli.sleep = self.deepsleep_init
         self.is_paused = False
         self._threads_start()
-        _thread.start_new_thread(self.cli.process, (1, 2))
 
+        self.cli = None
 
         self.ble_rpc = None
         if config.get("ble_api", False):
@@ -75,25 +77,31 @@ class Pymesh:
 
             self.ble_rpc = BleRpc(self.config, self.mesh)
 
-
+    def cli_start(self):
+        if self.cli is None:
+            self.cli = Cli(self.mesh, self)
+            self.cli.sleep = self.deepsleep_init
+            # self.cli_thread = _thread.start_new_thread(self.cli.process, (1, 2))
+            self.cli.process(None, None)
+    
     def deepsleep_now(self):
         """ prepare scripts for graceful exit, deepsleeps if case """
-        print("deepsleep_now")
+        print_debug(1, "deepsleep_now")
         self.mesh.pause()
         if self.ble_rpc:
             self.ble_rpc.terminate()
         # watchdog.timer_kill()
         # Gps.terminate()
         # self.mesh.statistics.save_all()
-        print('Cleanup code, all Alarms cb should be stopped')
+        print_debug(1, 'Cleanup code, all Alarms cb should be stopped')
         if self.new_lora_mac:
             fo = open("/flash/sys/lpwan.mac", "wb")
             mac_write=bytes([0, 0, 0, 0, 0, 0, (self.new_lora_mac >> 8) & 0xFF, self.new_lora_mac & 0xFF])
             fo.write(mac_write)
             fo.close()
-            print("Really LoRa MAC set to", self.new_lora_mac)
+            print_debug(1, "Really LoRa MAC set to " + str(self.new_lora_mac))
         if self.deepsleep_timeout > 0:
-            print('Going to deepsleep for %d seconds'%self.deepsleep_timeout)
+            print_debug(1, 'Going to deepsleep for %d seconds'%self.deepsleep_timeout)
             time.sleep(1)
             machine.deepsleep(self.deepsleep_timeout * 1000)
         else:
@@ -102,7 +110,7 @@ class Pymesh:
 
     def deepsleep_init(self, timeout, new_MAC = None):
         """ initializes an deep-sleep sequence, that will be performed later """
-        print("deepsleep_init")
+        print_debug(3, "deepsleep_init")
         self.deepsleep_timeout = timeout
         self.kill_all = True
         if new_MAC:
@@ -121,22 +129,19 @@ class Pymesh:
                 pass
 
         except KeyboardInterrupt:
-            print('Got Ctrl-C')
+            print_debug(1, 'Got Ctrl-C')
         except Exception as e:
             sys.print_exception(e)
-        # finally:
-            # print('finally')
-            # self.deepsleep_now()
 
     def _threads_start(self):
         _thread.start_new_thread(self.process, (1,2))
 
     def pause(self):
         if self.is_paused:
-            print("Pymesh already paused")
+            # print_debug(5, "Pymesh already paused")
             return
 
-        print("Pymesh pausing")
+        print_debug(3, "Pymesh pausing")
 
         self.mesh.pause()
         if self.ble_rpc:
@@ -145,15 +150,15 @@ class Pymesh:
         self.is_paused = True
         return
 
-    def resume(self):
+    def resume(self, tx_dBm = 14):
         if not self.is_paused:
-            print("Pymesh can't be resumed, not paused")
+            # print_debug(5, "Pymesh can't be resumed, not paused")
             return
 
-        print("Pymesh resuming")
+        print_debug(3, "Pymesh resuming")
         self.is_paused = False
         self._threads_start()
-        self.mesh.resume()
+        self.mesh.resume(tx_dBm)
 
         return
 
@@ -239,4 +244,4 @@ class Pymesh:
             DEBUG_WARN = const(2)
             DEBUG_CRIT = const(1)
             DEBUG_NONE = const(0) """
-        return self.mesh.debug_level(level)
+        return debug_level(level)
