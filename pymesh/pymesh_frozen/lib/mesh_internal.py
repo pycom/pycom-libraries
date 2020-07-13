@@ -146,8 +146,8 @@ class MeshInternal:
         self.sock = None
         self.mesh.pause()
 
-    def resume(self):
-        self.mesh.resume()
+    def resume(self, tx_dBm = 14):
+        self.mesh.resume(tx_dBm)
 
     def create_socket(self):
         """ create UDP socket """
@@ -167,7 +167,7 @@ class MeshInternal:
             # elif mess.state == Message.MESS_STATE_SENT:
             #     # try to resend
             #     if time.time() - mess.last_tx_ts > 15:
-            #         print("Re-transmit %x %s" % (mac, mess.ip))
+            #         print_debug(3, "Re-transmit %x %s" % (mac, mess.ip))
             #         mess.last_tx_ts = time.time()
             #         self.send_message(mess)
         pass
@@ -195,14 +195,14 @@ class MeshInternal:
         return self.mesh.ip()
 
     # def _process_router(self):
-    #     print("Process Router")
+    #     print_debug(3, "Process Router")
     #     # just update internal neighbor table
     #     self.mesh.neighbors_update()
     #     # add itself and neighbors in the leader data
     #     self.mesh.leader_add_own_neigh()
 
     def _process_leader(self):
-        print("Process Leader")
+        print_debug(3, "Process Leader")
 
         """
         if state == self.mesh.STATE_LEADER_SINGLE:
@@ -223,7 +223,7 @@ class MeshInternal:
         for router_pair in router_list[:router_num]:
             (age, router) = router_pair
             self.send_pack(self.PACK_LEADER_ASK_NEIGH, '', router)
-            print("Leader inquire Router %s" % router)
+            print_debug(3, "Leader inquire Router %s" % router)
             idx = idx + 1
             if idx < router_num:
                 time.sleep(.5)
@@ -233,31 +233,31 @@ class MeshInternal:
         ret = False
         # first, make sure this node is not BR (BR data is sent directly)
         if len(self.mesh.mesh.border_router()) > 0:
-            print("Node is BR, so shouldn't send data to another BR")
+            print_debug(3, "Node is BR, so shouldn't send data to another BR")
             return False
 
         # check if we have a BR network prefix in ipaddr
         for ip in self.mesh.ipaddr():
             if ip.startswith(self.BR_NET_ADDRESS[0:-4]):
-                print("found BR address: ", ip)
-                if time.time() - self.ext_mesh_ts > 5:
+                print_debug(3, "found BR address: %s"%ip)
+                if time.time() - self.ext_mesh_ts >= 0:
                     ret = True
                     try:
                         ip = data['ip']
                         port = int(data['port'])
                         payload = data['b']
                     except:
-                        print("Error parsing packet for Mesh-external")
+                        print_debug(3, "Error parsing packet for Mesh-external")
                         ret = False
                     if ret:
                         self.send_pack(self.PACK_BR, payload, ip, port)
                         # self.send_pack(self.PACK_BR, self.debug_data(False), self.EXTERNAL_IP)
                         self.ext_mesh_ts = time.time()
                 else:
-                    print("BR sending too fast")
+                    print_debug(3, "BR sending too fast")
                     ret = False
         if not ret:
-            print("no BR (mesh-external IPv6) found")
+            print_debug(3, "no BR (mesh-external IPv6) found")
         return ret
 
     def process(self):
@@ -314,33 +314,33 @@ class MeshInternal:
     def border_router(self, enable, prio = 0, br_mess_cb = None):
         """ Disables/Enables the Border Router functionality, with priority and callback """
         net_list = self.mesh.mesh.border_router()
-        print("State:", enable, "BR: ", net_list)
+        print_debug(3, "State:" + str(enable) + "BR: "+ str(net_list))
 
         if not enable:
             # disable all BR network registrations (possible multiple)
             self.br_handler = None
             for net in net_list:
                 self.mesh.mesh.border_router_del(net.net)
-            print("Done remove BR")
+            print_debug(3, "Done remove BR")
         else:
             self.br_handler = br_mess_cb
             # check if BR already added
             try:
-                # print(net[0].net)
-                # print(self.BR_NET_ADDRESS)
+                # print_debug(3, net[0].net)
+                # print_debug(3, self.BR_NET_ADDRESS)
                 # if net[0].net != self.BR_NET_ADDRESS:
                 if not net_list[0].net.startswith(self.BR_NET_ADDRESS[0:-3]):
                     # enable BR
                     self.mesh.mesh.border_router(self.BR_NET_ADDRESS, prio)
-                    print("Done add BR")
+                    print_debug(3, "Done add BR")
             except:
                 # enable BR
                 self.mesh.mesh.border_router(self.BR_NET_ADDRESS, prio)
-                print("Force add BR")
+                print_debug(3, "Force add BR")
 
         # print again the BR, to confirm
         net_list = self.mesh.mesh.border_router()
-        print("BR: ", net_list)
+        print_debug(3, "BR: " + str(net_list))
         pass
 
     def _check_to_send(self, pack_type, ip):
@@ -350,7 +350,7 @@ class MeshInternal:
             key = (100 * pack_type) + int(ip[-4:], 16)
         except:
             # just send it
-            #print("just send it, ? ", ip)
+            #print_debug(3, "just send it, ? ", ip)
             send_it = False
         if not send_it:
             return True
@@ -363,24 +363,24 @@ class MeshInternal:
             else:
                 self.send_table[key] = now
         except:
-            #print("%s not in send_table"%str(key))
+            #print_debug(3, "%s not in send_table"%str(key))
             send_it = True
 
         if send_it:
             # mark packet as sent now
             self.send_table[key] = now
-            #print("Packet sent now")
+            #print_debug(3, "Packet sent now")
         return send_it  # packet already send
 
     def send_pack(self, pack_type, data, ip, port=PORT_MESH_INTERNAL):
         if self.sock is None:
             return False
 
-        print("Send pack: 0x%X to IP %s" % (pack_type, ip))
+        print_debug(3, "Send pack: 0x%X to IP %s" % (pack_type, ip))
 
         # check not to send same (packet, destination) too often
         # if not self._check_to_send(pack_type, ip):
-        #     print("NO send")
+        #     print_debug(3, "NO send")
         #     return False
 
         sent_ok = True
@@ -390,7 +390,7 @@ class MeshInternal:
             self.sock.sendto(header + data, (ip, port))
             #self.mesh.blink(2, .1)
         except Exception as ex:
-            print("Socket.sendto exception: {}".format(ex))
+            print_debug(3, "Socket.sendto exception: {}".format(ex))
             sent_ok = False
         return sent_ok
 
@@ -402,8 +402,8 @@ class MeshInternal:
 
         len2 = len(data)
         if len1 != len2:
-            print("PACK_HEADER length not ok %d %d" % (len1, len2))
-            print(data)
+            print_debug(3, "PACK_HEADER length not ok %d %d" % (len1, len2))
+            print_debug(3, str(data))
             return
 
         return (pack_type, data)
@@ -456,16 +456,17 @@ class MeshInternal:
                 break  # out of while, no packet
             rcv_ip = rcv_addr[0]
             rcv_port = rcv_addr[1]
-            print('Incoming %d bytes from %s (port %d):' %
+            print_debug(4, 'Incoming %d bytes from %s (port %d):' %
                   (len(rcv_data), rcv_ip, rcv_port))
-            # print(rcv_data)
+            # print_debug(3, rcv_data)
+            print_debug(5, str(self.mesh.lora.stats()))
 
             # check if Node is BR
             if self.br_handler:
                 #check if data is for the external of the Pymesh (for Pybytes)
                 if rcv_data[0] == self.BR_MAGIC_BYTE and len(rcv_data) >= calcsize(self.BR_HEADER_FMT):
                     br_header = unpack(self.BR_HEADER_FMT, rcv_data)
-                    print("BR pack, IP dest: %x:%x:%x:%x:%x:%x:%x:%x (port %d)"%(
+                    print_debug(3, "BR pack, IP dest: %x:%x:%x:%x:%x:%x:%x:%x (port %d)"%(
                         br_header[1],br_header[2],br_header[3],br_header[4],
                         br_header[5],br_header[6],br_header[7],br_header[8], br_header[9]))
                     rcv_data = rcv_data[calcsize(self.BR_HEADER_FMT):]
@@ -476,9 +477,9 @@ class MeshInternal:
 
                     dest_port = br_header[9]
 
-                    print(rcv_data)
+                    print_debug(3, rcv_data)
                     (type, rcv_data) = self.get_type(rcv_data)
-                    print(rcv_data)
+                    print_debug(3, rcv_data)
 
                     self.br_handler(rcv_ip, rcv_port, rcv_data, dest_ip, dest_port)
                     return # done, no more parsing as this pack was for BR
@@ -487,32 +488,32 @@ class MeshInternal:
             (type, rcv_data) = self.get_type(rcv_data)
             # LEADER
             if type == self.PACK_ROUTER_NEIGHBORS:
-                print("PACK_ROUTER_NEIGHBORS received")
+                print_debug(3, "PACK_ROUTER_NEIGHBORS received")
                 self.mesh.routers_neigh_update(rcv_data)
                 # no answer
             # elif type == self.PACK_ROUTER_ASK_LEADER_DATA:
-            #     print("PACK_ROUTER_ASK_LEADER_DATA received")
+            #     print_debug(3, "PACK_ROUTER_ASK_LEADER_DATA received")
             #     # send answer with Leader data
             #     pack = self.mesh.leader_data_pack()
             #     self.send_pack(self.PACK_LEADER_DATA, pack, rcv_ip)
 
             # ROUTER
             elif type == self.PACK_LEADER_ASK_NEIGH:
-                print("PACK_LEADER_ASK_NEIGH received")
+                print_debug(3, "PACK_LEADER_ASK_NEIGH received")
                 payload = self.mesh.neighbors_pack()
                 #time.sleep(.2)
                 self.send_pack(self.PACK_ROUTER_NEIGHBORS, payload, rcv_ip)
             # elif type == self.PACK_LEADER_DATA:
-            #     print("PACK_LEADER_DATA received")
+            #     print_debug(3, "PACK_LEADER_DATA received")
             #     if self.mesh.leader_data_unpack(rcv_data):
             #         self.interrogate_leader_ts = time.time()
 
             # ALL NODES
             elif type == self.PACK_MESSAGE:
-                print("PACK_MESSAGE received")
+                print_debug(3, "PACK_MESSAGE received")
                 # add new pack received
                 message = Message(rcv_data)
-                print(message.payload)
+                # print_debug(3, message.payload)
                 message.ip = rcv_ip
                 self.messages.add_rcv_message(message)
 
@@ -525,59 +526,59 @@ class MeshInternal:
 
 
             elif type == self.PACK_MESSAGE_ACK:
-                print("PACK_MESSAGE_ACK received")
+                print_debug(3, "PACK_MESSAGE_ACK received")
                 # mark message as received
                 self.messages.rcv_ack(rcv_data)
 
             elif type == self.PACK_ROUTER_ASK_MACS:
-                print("PACK_ROUTER_ASK_MACS received")
+                print_debug(3, "PACK_ROUTER_ASK_MACS received")
                 payload = self.mesh.leader_data.get_macs_pack()
                 self.send_pack(self.PACK_LEADER_MACS, payload, rcv_ip)
 
             elif type == self.PACK_LEADER_MACS:
-                print("PACK_LEADER_MACS received")
+                print_debug(3, "PACK_LEADER_MACS received")
                 self.mesh.macs_set(rcv_data)
 
             elif type == self.PACK_ROUTER_ASK_CONNECTIONS:
-                print("PACK_ROUTER_ASK_CONNECTIONS received")
+                print_debug(3, "PACK_ROUTER_ASK_CONNECTIONS received")
                 payload = self.mesh.leader_data.get_connections_pack()
                 self.send_pack(self.PACK_LEADER_CONNECTIONS, payload, rcv_ip)
 
             elif type == self.PACK_LEADER_CONNECTIONS:
-                print("PACK_LEADER_CONNECTIONS received")
+                print_debug(3, "PACK_LEADER_CONNECTIONS received")
                 self.mesh.connections_set(rcv_data)
 
             elif type == self.PACK_ROUTER_ASK_MAC_DETAILS:
-                print("PACK_ROUTER_ASK_MAC_DETAILS received")
+                print_debug(3, "PACK_ROUTER_ASK_MAC_DETAILS received")
                 (mac_req, ) = unpack('!H', rcv_data)
-                print(mac_req)
+                print_debug(3, str(mac_req))
                 payload = self.mesh.leader_data.node_info_mac_pack(mac_req)
                 if len(payload) > 0:
                     self.send_pack(self.PACK_LEADER_MAC_DETAILS,
                                    payload, rcv_ip)
                 else:
-                    print("No info found about MAC %d"%mac_req)
+                    print_debug(3, "No info found about MAC %d"%mac_req)
 
             elif type == self.PACK_LEADER_MAC_DETAILS:
-                print("PACK_LEADER_MAC_DETAILS received")
+                print_debug(3, "PACK_LEADER_MAC_DETAILS received")
                 self.mesh.node_info_set(rcv_data)
 
             # elif type == self.PACK_FILE_SEND:
-            #     print("PACK_FILE_SEND received")
+            #     print_debug(3, "PACK_FILE_SEND received")
             #     payload = pack("!Q", self.MAC)
             #     self.send_pack(self.PACK_FILE_SEND_ACK, payload, rcv_ip)
             #     # rcv data contains '!QHH' as header
             #     chunk = len(rcv_data) -12
             #     self.file_size += chunk
-            #     print("size: %d, chunk %d" % (self.file_size, chunk))
+            #     print_debug(3, "size: %d, chunk %d" % (self.file_size, chunk))
             #     file_handler = "ab" # append, by default
             #     if chunk > self.file_packsize:
             #         # started receiving a new file
-            #         print("started receiving a new image")
+            #         print_debug(3, "started receiving a new image")
             #         file_handler = "wb" # write/create new file
             #         self.file_packsize = chunk
             #     elif chunk < self.file_packsize:
-            #         print("DONE receiving the image")
+            #         print_debug(3, "DONE receiving the image")
             #         # done receiving the file
             #         self.file_packsize = 0
             #         self.file_size = 0
@@ -587,22 +588,22 @@ class MeshInternal:
             #     #     self.file.write(rcv_data)
             #     with open('/flash/dog_rcv.jpg', file_handler) as file:
             #         file.write(rcv_data[12:])
-            #         print("writing the image")
+            #         print_debug(3, "writing the image")
 
 
             # elif type == self.PACK_FILE_SEND_ACK:
             #     mac_rcv = unpack("!Q", rcv_data)
-            #     print("PACK_FILE_SEND_ACK received from MAC %d"%mac_rcv)
+            #     print_debug(3, "PACK_FILE_SEND_ACK received from MAC %d"%mac_rcv)
             #     mac_rcv = 6
             #     message = self.messages.dict.get(mac_rcv, None)
             #     if message:
-            #         print("message found")
+            #         print_debug(3, "message found")
             #         self.send_message(message, rcv_data)
             #     else:
-            #         print("message NOT found ", mac_rcv, self.messages.dict)
+            #         print_debug(3, "message NOT found ", mac_rcv, self.messages.dict)
 
             else:
-                print("Unknown packet, type: 0x%X" % (type))
-                print(rcv_data)
+                print_debug(3, "Unknown packet, type: 0x%X" % (type))
+                print_debug(3, str(rcv_data))
 
         pass

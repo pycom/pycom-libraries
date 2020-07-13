@@ -6,15 +6,20 @@
 # see the Pycom Licence v1.0 document supplied with this file, or
 # available at https://www.pycom.io/opensource/licensing
 
-__version__ = '1'
-"""
-* initial version
-"""
-
+try:
+    from pymesh_debug import print_debug
+except:
+    from _pymesh_debug import print_debug
+    
 import time
 # from pytrack import Pytrack
 # from L76GNSS import L76GNSS
 from machine import Timer
+
+__version__ = '1'
+"""
+* initial version
+"""
 
 class Gps:
     # Pycom office GPS coordinates
@@ -34,7 +39,7 @@ class Gps:
             Gps.lon = longitude            
             is_set = True
         else:
-            print("Error parsing ", latitude, longitude)
+            print_debug(3, "Error parsing ", latitude, longitude)
 
     @staticmethod
     def get_location():
@@ -48,10 +53,10 @@ class Gps:
     #         Gps.l76 = L76GNSS(py, timeout=30)
     #         #l76.coordinates()
     #         Gps._timer = Timer.Alarm(Gps.gps_periodic, 30, periodic=True)
-    #         print("Pytrack detected")
+    #         print_debug(3, "Pytrack detected")
     #     except:
     #         is_pytrack = False
-    #         print("Pytrack NOT detected")
+    #         print_debug(3, "Pytrack NOT detected")
     #     #TODO: how to check if GPS is conencted
     #     return is_pytrack
 
@@ -61,9 +66,9 @@ class Gps:
     #     coord = Gps.l76.coordinates()
     #     if coord[0] != None:
     #         Gps.lat, Gps.lon = coord
-    #         print("New coord ", coord)
+    #         print_debug(3, "New coord ", coord)
     #     dt = time.ticks_ms() - t0
-    #     print(" =====>>>> gps_periodic ", dt)
+    #     print_debug(3, " =====>>>> gps_periodic ", dt)
 
     # @staticmethod
     # def terminate():

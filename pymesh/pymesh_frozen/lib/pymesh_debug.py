@@ -29,6 +29,17 @@ def print_debug(level, msg):
 
 def debug_level(level):
     global DEBUG
-    DEBUG = level
+    if level is None:
+        try:
+            ret = pycom.nvs_get('pymesh_debug')
+        except:
+            ret = None
+        return ret
+    try:
+        ret = int(level)
+    except:
+        return
+
+    DEBUG = ret
     pycom.nvs_set('pymesh_debug', DEBUG)
     

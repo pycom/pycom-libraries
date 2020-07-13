@@ -21,11 +21,9 @@ except:
     from _meshaging import Meshaging
 
 try:
-    from pymesh_debug import print_debug
-    from pymesh_debug import debug_level
+    from pymesh_debug import *
 except:
-    from _pymesh_debug import print_debug
-    from _pymesh_debug import debug_level
+    from _pymesh_debug import *
 
 __version__ = '6'
 """
@@ -88,15 +86,15 @@ class MeshInterface:
             #     if self.single_leader_ts == 0:
             #         # first time Single Leader, record time
             #         self.single_leader_ts = time.time()
-            #     print("Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single(),
+            #     print_debug(3, "Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single(),
             #         time.time() - self.single_leader_ts)
 
             #     if time.time() - self.single_leader_ts > 180:
-            #         print("Single Leader, just reset")
+            #         print_debug(3, "Single Leader, just reset")
             #         if self.sleep_function:
             #             self.sleep_function(1)
             # else:
-            #     # print("Not Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single())
+            #     # print_debug(3, "Not Single Leader", self.mesh.mesh.state, self.mesh.mesh.mesh.single())
             #     self.single_leader_ts = 0
 
             self.lock.release()
@@ -110,8 +108,8 @@ class MeshInterface:
         self._timer.cancel()
         self.mesh.pause()
 
-    def resume(self):
-        self.mesh.resume()
+    def resume(self, tx_dBm = 14):
+        self.mesh.resume(tx_dBm)
         self._start_timer()
 
     def get_mesh_mac_list(self):
@@ -121,7 +119,7 @@ class MeshInterface:
             # mac_list.sort()
             mac_list = {0:list(self.mesh.get_all_macs_set())}
             self.lock.release()
-        print("get_mesh_mac_list:", str(mac_list))
+        print_debug(3, "get_mesh_mac_list:" + str(mac_list))
         return mac_list
 
     def get_mesh_pairs(self):
@@ -129,7 +127,7 @@ class MeshInterface:
         if self.lock.acquire():
             mesh_pairs = self.mesh.get_mesh_pairs()
             self.lock.release()
-        #print("get_mesh_pairs: %s"%str(mesh_pairs))
+        #print_debug(3, "get_mesh_pairs: %s"%str(mesh_pairs))
         return mesh_pairs
 
     def set_gps(self, lng, lat):
@@ -156,7 +154,7 @@ class MeshInterface:
             mac = int(mac_id)
         except:
             mac = self.mesh.MAC
-            print("get_node_info own mac")
+            print_debug(3, "get_node_info own mac")
         if self.lock.acquire():
             data = self.mesh.node_info(mac)
             data['loRa_mac'] = mac
@@ -180,11 +178,11 @@ class MeshInterface:
             id = int(data['id'])
             ts = int(data['ts'])
         except:
-            print('send_message: wrong input params')
+            print_debug(1, 'send_message: wrong input params')
             return False
 
         if self.lock.acquire():
-            print("Send message to %d, typ %d, load %s"%(mac, msg_type, payload))
+            print_debug(3, "Send message to %d, typ %d, load %s"%(mac, msg_type, payload))
             ret = self.meshaging.send_message(mac, msg_type, payload, id, ts)
             # send messages ASAP
             self.mesh.process_messages()
@@ -197,7 +195,7 @@ class MeshInterface:
         if self.lock.acquire():
             ret = self.meshaging.mesage_was_ack(mac, id)
             self.lock.release()
-        #print("mesage_was_ack (%X, %d): %d"%(mac, id, ret))
+        #print_debug(3, "mesage_was_ack (%X, %d): %d"%(mac, id, ret))
         return ret
 
     def get_rcv_message(self):
@@ -223,8 +221,8 @@ class MeshInterface:
     #         num_mess = int(data['n'])
     #         timeout = int(data['t'])
     #     except:
-    #         print("statistics_start failed")
-    #         print(data)
+    #         print_debug(3, "statistics_start failed")
+    #         print_debug(3, data)
     #         return 0
     #     if mac == self.mesh.MAC:
     #         data['mac'] = 2
@@ -233,7 +231,7 @@ class MeshInterface:
 
     # def statistics_get(self, id):
     #     res = self.statistics.status(id)
-    #     print(res)
+    #     print_debug(3, res)
     #     return res
 
     def br_set(self, enable, prio = 0, br_mess_cb = None):
@@ -279,29 +277,16 @@ class MeshInterface:
         ret = self.ot_cli('leaderweight '+ str(weight))
         return ret == ''
 
-    def debug_level(self, level = None):
-        if level is None:
-            try:
-                ret = pycom.nvs_get('pymesh_debug')
-            except:
-                ret = None
-            return ret
-        try:
-            ret = int(level)
-        except:
-            ret = self.debug_level
-        debug_level(ret)
-
     # def parent(self):
     #     """ Returns the Parent MAC for the current Child node
     #     Returns 0 if node is not Child """
 
     #     if self.mesh.mesh.mesh.state() != self.mesh.mesh.STATE_CHILD:
-    #         print("Not Child, no Parent")
+    #         print_debug(3, "Not Child, no Parent")
     #         return 0
     #     # try:
     #     parent_mac = int(self.mesh.mesh.mesh.cli('parent').split('\r\n')[0].split('Ext Addr: ')[1], 16)
     #     # except:
     #         # parent_mac = 0
-    #     print('Parent mac is:', parent_mac)
+    #     print_debug(3, 'Parent mac is: %s'%parent_mac)
     #     return parent_mac

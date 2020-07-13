@@ -112,19 +112,20 @@ class Loramesh:
         # set a new unicast address
         self._add_ipv6_unicast()
 
-    def _lora_init(self):
+    def _lora_init(self, tx_dBm = 14):
         self.lora = LoRa(mode=LoRa.LORA,
             region = self.config_lora.get("region"),
             frequency = self.config_lora.get("freq"),
             bandwidth = self.config_lora.get("bandwidth"),
-            sf = self.config_lora.get("sf"))
+            sf = self.config_lora.get("sf"),
+            tx_power = tx_dBm)
         self.mesh = self.lora.Mesh() #start Mesh
 
     def pause(self):
         self.mesh.deinit()
 
-    def resume(self):
-        self._lora_init()
+    def resume(self, tx_dBm = 14):
+        self._lora_init(tx_dBm)
         self._add_ipv6_unicast()
 
     def ip_mac_unique(self, mac):
@@ -276,7 +277,7 @@ class Loramesh:
 
     def neighbors_update(self):
         """ update neigh_dict from cli:'neighbor table' """
-        """ >>> print(lora.cli("neighbor table"))
+        """ >>> print_debug(3, lora.cli("neighbor table"))
         | Role | RLOC16 | Age | Avg RSSI | Last RSSI |R|S|D|N| Extended MAC     |
         +------+--------+-----+----------+-----------+-+-+-+-+------------------+
         |   C  | 0x2801 | 219 |        0 |         0 |1|1|1|1| 0000000000000005 |
@@ -312,7 +313,7 @@ class Loramesh:
             mac = nei_rec.mac
             neighbor = NeighborData((mac, age, rloc16, role, rssi,))
             self.router_data.add_neighbor(neighbor)
-            #print("new Neighbor: %s"%(neighbor.to_string()))
+            #print_debug(3, "new Neighbor: %s"%(neighbor.to_string()))
             #except:
             #    pass
         # add own info in dict
@@ -341,9 +342,9 @@ class Loramesh:
 
     def leader_dict_cleanup(self):
         """ cleanup the leader_dict for old entries """
-        #print("Leader Data before cleanup: %s"%self.leader_data.to_string())
+        #print_debug(3, "Leader Data before cleanup: %s"%self.leader_data.to_string())
         self.leader_data.cleanup()
-        print("Leader Data : %s"%self.leader_data.to_string())
+        print_debug(3, "Leader Data : %s"%self.leader_data.to_string())
 
     def routers_rloc_list(self, age_min, resolve_mac = None):
         """ return list of all routers IPv6 RLOC16
@@ -351,8 +352,8 @@ class Loramesh:
         """
         mac_ip = None
         data = self.mesh.routers()
-        print("Routers Table: ", data)
-        '''>>> print(lora.cli('router table'))
+        print_debug(3, "Routers Table: "+ str(data))
+        '''>>> print_debug(3, lora.cli('router table'))
         | ID | RLOC16 | Next Hop | Path Cost | LQ In | LQ Out | Age | Extended MAC     |
         +----+--------+----------+-----------+-------+--------+-----+------------------+
         | 12 | 0x3000 |       63 |         0 |     0 |      0 |   0 | 0000000000000002 |'''
@@ -390,13 +391,13 @@ class Loramesh:
             routers_list.append((last_ts, ipv6))
 
         if resolve_mac is not None:
-            print("Mac found in Router %s"%str(mac_ip))
+            print_debug(3, "Mac found in Router %s"%str(mac_ip))
             return mac_ip
 
         # sort the list in the ascending values of timestamp
         routers_list.sort()
 
-        print("Routers list %s"%str(routers_list))
+        print_debug(3, "Routers list %s"%str(routers_list))
         return routers_list
 
     def leader_data_pack(self):
@@ -407,7 +408,7 @@ class Loramesh:
 
     def leader_data_unpack(self, data):
         self.leader_data = LeaderData(data)
-        print("Leader Data : %s"%self.leader_data.to_string())
+        print_debug(3, "Leader Data : %s"%self.leader_data.to_string())
         return self.leader_data.ok
 
     def neighbor_resolve_mac(self, mac):
@@ -416,27 +417,27 @@ class Loramesh:
 
     def resolve_mac_from_leader_data(self, mac):
         mac_ip = self.leader_data.resolve_mac(mac)
-        print("Mac %x found as IP %s"%(mac, str(mac_ip)))
+        print_debug(3, "Mac %x found as IP %s"%(mac, str(mac_ip)))
         return mac_ip
 
     def macs_get(self):
         """ returns the set of the macs, hopefully it was received from Leader """
-        #print("Macs: %s"%(str(self.macs)))
+        #print_debug(3, "Macs: %s"%(str(self.macs)))
         return (self.macs, self.macs_ts)
 
     def macs_set(self, data):
         MACS_FMT = '!H'
         field_size = calcsize(MACS_FMT)
-        #print("Macs pack: %s"%(str(data)))
+        #print_debug(3, "Macs pack: %s"%(str(data)))
         n, = unpack(MACS_FMT, data)
-        #print("Macs pack(%d): %s"%(n, str(data)))
+        #print_debug(3, "Macs pack(%d): %s"%(n, str(data)))
         index = field_size
         self.macs = set()
 
         for _ in range(n):
             mac, = unpack(MACS_FMT, data[index:])
             self.macs.add(mac)
-            #print("Macs %d, %d: %s"%(index, mac, str(self.macs)))
+            #print_debug(3, "Macs %d, %d: %s"%(index, mac, str(self.macs)))
             index = index + field_size
 
         self.macs_ts = time.time()
@@ -489,12 +490,12 @@ class Loramesh:
         if role is self.STATE_ROUTER:
             router = RouterData(data[1:])
             self.leader_data.add_router(router)
-            print("Added as router %s"%router.to_string())
+            print_debug(3, "Added as router %s"%router.to_string())
         elif role is self.STATE_CHILD:
             node = NeighborData(data[1:])
             router = RouterData(node)
             self.leader_data.add_router(router)
-            print("Added as Router-Neigh %s"%router.to_string())
+            print_debug(3, "Added as Router-Neigh %s"%router.to_string())
         pass
 
 class NeighborData:
@@ -513,20 +514,20 @@ class NeighborData:
             return
 
         datatype = str(type(data))
-        #print('NeighborData __init__ %s'%str(data))
+        #print_debug(3, 'NeighborData __init__ %s'%str(data))
         if datatype == "<class 'tuple'>":
             self._init_tuple(data)
         elif datatype == "<class 'bytes'>":
             self._init_bytes(data)
-        #print('NeighborData done __init__')
+        #print_debug(3, 'NeighborData done __init__')
 
     def _init_tuple(self, data):
-        #print('_init_tuple %s'%str(data))
+        #print_debug(3, '_init_tuple %s'%str(data))
         (self.mac, self.age, self.rloc16, self.role, self.rssi) = data
         return
 
     def _init_bytes(self, data):
-        #print('NeighborData._init_bytes %s'%str(data))
+        #print_debug(3, 'NeighborData._init_bytes %s'%str(data))
         self.mac, self.rloc16, self.role, self.rssi, self.age = unpack(self.PACKING_FMT,
             data[:self.pack_fmt_size()])
         return
@@ -570,7 +571,7 @@ class RouterData:
 
     def _init_bytes(self, data_pack):
 
-        #print('RouterData._init_bytes %s'%str(data_pack))
+        #print_debug(3, 'RouterData._init_bytes %s'%str(data_pack))
         index = calcsize(self.PACK_HEADER_FMT)
         (self.mac, self.rloc16, lat, lon, neigh_num) = \
             unpack(self.PACK_HEADER_FMT, data_pack[: index])
@@ -607,7 +608,7 @@ class RouterData:
 
     def add_neighbor(self, neighbor):
         self.dict[neighbor.mac] = neighbor
-        #print("add_neighbor type: %s"%str(type(neighbor)))
+        #print_debug(3, "add_neighbor type: %s"%str(type(neighbor)))
         return
 
     def neigh_num(self):
@@ -628,7 +629,7 @@ class RouterData:
         x = 'Router MAC 0x%X, rloc16 0x%x, coord %s, neigh_num %d, ts %d\n'\
             %(self.mac, self.rloc16, str(self.coord), len(self.dict), self.ts)
         for mac, nei in self.dict.items():
-            #print("type: %s, %s"%(str(type(nei)),str(nei)))
+            #print_debug(3, "type: %s, %s"%(str(type(nei)),str(nei)))
             x = x + nei.to_string() + '\n'
         return x
 
@@ -690,7 +691,7 @@ class LeaderData:
 
     def _init_bytes(self, data_pack):
 
-        #print('LeaderData._init_bytes %s'%str(data_pack))
+        #print_debug(3, 'LeaderData._init_bytes %s'%str(data_pack))
         index = calcsize(self.PACK_HEADER_FMT)
         (self.mac, self.rloc16, routers_num) = unpack(self.PACK_HEADER_FMT, data_pack[: index])
         self.ts = time.time()
@@ -711,7 +712,7 @@ class LeaderData:
     def cleanup(self):
         for mac, router in self.dict.items():
             if time.time() - router.ts > 300:
-                print("Deleted old Router %d"%mac)
+                print_debug(3, "Deleted old Router %d"%mac)
                 del self.dict[mac]
         return
 
@@ -744,7 +745,7 @@ class LeaderData:
     def node_info_mac_pack(self, mac):
         node, role = self.node_info_mac(mac)
         if node is None:
-            print("Node is None %d"%mac)
+            print_debug(3, "Node is None %d"%mac)
             return bytes()
         # pack type: RouterData or Child (basically NeighborData)
         data = pack('!B', role)
@@ -778,7 +779,7 @@ class LeaderData:
 
     def get_connections_pack(self):
         connections = self.get_mesh_connections()
-        print("Connections ", connections)
+        print_debug(3, "Connections "+ str(connections))
         data = pack('!H', len(connections))
         for record in connections:
             (mac1, mac2, rssi) = record
@@ -797,7 +798,7 @@ class LeaderData:
         data = pack('!H', len(macs))
         for mac in macs:
             data = data + pack('!H', mac)
-        #print("Macs pack:%s"%(str(data)))
+        #print_debug(3, "Macs pack:%s"%(str(data)))
         return data
 
     def get_mac_ts(self, mac):

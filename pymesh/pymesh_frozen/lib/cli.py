@@ -9,19 +9,21 @@
 import time
 import json
 import sys
-
-try:
-    from pymesh_debug import print_debug
-except:
-    from _pymesh_debug import print_debug
+import _thread
 
 try:
     from gps import Gps
 except:
     from _gps import Gps
 
-__version__ = '2'
+__version__ = '3'
 """
+__version__ = '3'
+* added dynamic start/stop CLI
+* h = help, listing all commands
+* added tx_pow and s(send) packets with repetitions
+* debug can also read the current level
+
 __version__ = '2'
 * added pause/resume and factory reset
 
@@ -92,6 +94,8 @@ class Cli:
                     print('last_mesh_pairs', json.dumps(last_mesh_pairs))
 
                 elif cmd == 's':
+                    interval = 0
+                    repetitions = 0
                     try:
                         to = int(input('(to)<'))
                         # typ = input('(type, 0=text, 1=file, Enter for text)<')
@@ -100,6 +104,9 @@ class Cli:
                         # else:
                         #     typ = int(typ)
                         txt = input('(message)<')
+                        repetitions = int(input('(repetitions)'))
+                        if repetitions > 1:
+                            interval = int(input('(interval in seconds)'))
                     except:
                         continue
                     data = {
@@ -109,7 +116,13 @@ class Cli:
                         'id': 12345,
                         'ts': int(time.time()),
                     }
-                    print(self.mesh.send_message(data))
+                    while repetitions > 0:
+                        print(self.mesh.send_message(data))
+                        repetitions = repetitions - 1
+                        if repetitions > 0:
+                            print("Remaining TX packets:", repetitions)
+                            time.sleep(interval)
+                        
 
                 elif cmd == 'ws':
                     to = int(input('(to)<'))
@@ -241,9 +254,9 @@ class Cli:
                     ret = input('(debug level[0-5])<')
                     try:
                         level = int(ret)
-                        self.mesh.debug_level(level)
+                        self.pymesh.debug_level(level)
                     except:
-                        print_debug(1, "error parsing")
+                        print(self.pymesh.debug_level())
 
                 elif cmd == "config":
                     print(self.mesh.config)
@@ -253,38 +266,58 @@ class Cli:
 
                 elif cmd == "resume":
                     self.pymesh.resume()
+                
+                elif cmd == "tx_pow":
+                    print("LoRa stats:", self.pymesh.mesh.mesh.mesh.lora.stats())
+                    tx_str = input('(tx_pow[2-20])<')
+                    try:
+                        tx_pow = int(tx_str)
+                        self.pymesh.pause()
+                        print("Change TX power to", tx_pow)
+                        time.sleep(1)
+                        self.pymesh.resume(tx_pow)
+                    except:
+                        print("Invalid value")
+                
+                elif cmd == "stop":
+                    self.pymesh.cli = None
+                    _thread.exit()
 
-                else:
+                elif cmd == "h":
                     print("List of available commands")
+                    print("br - enable/disable or display the current Border Router functionality")
+                    print("brs - send packet for Mesh-external, to BR, if any")
+                    print("buf - display buffer info")
+                    print("config - print config file contents")
+                    print("debug - set debug level")
+                    print("gps - get/set location coordinates")
+                    print("h - help, list of commands")
                     print("ip - display current IPv6 unicast addresses")
                     print("mac - set or display the current LoRa MAC address")
-                    print("self - display all info about current node")
                     print("mml - display the Mesh Mac List (MAC of all nodes inside this Mesh), also inquires Leader")
                     print("mp - display the Mesh Pairs (Pairs of all nodes connections), also inquires Leader")
-                    print("s - send message")
-                    print("ws - verifies if message sent was acknowledged")
+                    print("ot - sends command to openthread internal CLI")
+                    print("pause - suspend Pymesh")
+                    print("resume - resume Pymesh")
                     print("rm - verifies if any message was received")
+                    print("rst - reset NOW, including NVM Pymesh IPv6")
+                    print("s - send message")
+                    print("self - display all info about current node")
                     print("sleep - deep-sleep")
                     # print("stat - start statistics")
                     # print("stat? - display statistics")
-                    print("br - enable/disable or display the current Border Router functionality")
-                    print("brs - send packet for Mesh-external, to BR, if any")
-                    print("rst - reset NOW, including NVM Pymesh IPv6")
-                    print("pause - suspend Pymesh")
-                    print("resume - resume Pymesh")
-                    print("buf - display buffer info")
-                    print("ot - sends command to openthread internal CLI")
-                    print("debug - set debug level")
-                    print("config - print config file contents")
-                    print("gps - get/set location coordinates")
+                    print("stop - close this CLI")
+                    print("tx_pow - set LoRa TX power in dBm (2-20)")
+                    print("ws - verifies if message sent was acknowledged")
 
         except KeyboardInterrupt:
-            print('cli Got Ctrl-C')
+            print('CLI Ctrl-C')
         except Exception as e:
             sys.print_exception(e)
         finally:
-            print('cli finally')
-            self.sleep(0)
+            print('CLI stopped')
+            if self.pymesh.cli is not None:
+                self.sleep(0)
 
     def new_br_message_cb(self, rcv_ip, rcv_port, rcv_data, dest_ip, dest_port):
         ''' callback triggered when a new packet arrived for the current Border Router,
