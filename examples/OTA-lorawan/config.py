@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2019, Pycom Limited.
+# Copyright (c) 2020, Pycom Limited.
 #
 # This software is licensed under the GNU GPL version 3 or any
 # later version, with permitted additional terms. For more information
@@ -13,7 +13,7 @@ LORASERVER_IP = "127.0.0.1"
 LORASERVER_URL = 'http://localhost'
 LORASERVER_MQTT_PORT = 1883
 LORASERVER_API_PORT = 8080
-LORASERVER_USER = 'admin'
+LORASERVER_EMAIL = 'admin'
 LORASERVER_PASS = 'admin'
 
 LORASERVER_SERVICE_PROFILE = 'ota_sp'
@@ -23,4 +23,3 @@ LORASERVER_APP_ID = 1 # Read from Web Interface / Applications
 
 #update configuration
 UPDATE_DELAY = 300
-
