@@ -46,6 +46,6 @@ while (pybytes):
     coord = l76.coordinates()
     #f.write("{} - {}\n".format(coord, rtc.now()))
     print('Sending data')
-    pybytes.send_virtual_pin_value(True, 1, coord)
-    pybytes.send_virtual_pin_value(True, 2, li.acceleration())
+    pybytes.send_signal(1, coord)
+    pybytes.send_signal(2, li.acceleration())
     time.sleep(10)
