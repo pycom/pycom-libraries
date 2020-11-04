@@ -79,11 +79,11 @@ class Pymesh:
 
     def cli_start(self):
         if self.cli is None:
-            self.cli = Cli(self.mesh, self)
+            self.cli = Cli(self.mesh, self, self.ble_rpc.ble_comm)
             self.cli.sleep = self.deepsleep_init
             # self.cli_thread = _thread.start_new_thread(self.cli.process, (1, 2))
             self.cli.process(None, None)
-    
+
     def deepsleep_now(self):
         """ prepare scripts for graceful exit, deepsleeps if case """
         print_debug(1, "deepsleep_now")
@@ -177,6 +177,12 @@ class Pymesh:
             'ts': time.time(),
         }
         return self.mesh.send_message(data)
+
+    def get_battery_level(self):
+        return str(self.mesh.get_battery()) #+ "%"
+
+    def get_location(self):
+        return str(self.mesh.get_gps())
 
     def br_set(self, prio, br_mess_cb):
         """ Enable BR functionality on this Node, with priority and callback """

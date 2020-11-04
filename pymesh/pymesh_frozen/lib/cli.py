@@ -34,11 +34,11 @@ __version__ = '1'
 class Cli:
     """ class for CLI commands """
 
-    def __init__(self, mesh, pymesh):
+    def __init__(self, mesh, pymesh, ble_comm):
         self.mesh = mesh
         self.pymesh = pymesh
         # self.rpc_handler = rpc_handler
-        # self.ble_comm = ble_comm
+        self.ble_comm = ble_comm
 
         # lamda functions
         self.sleep = None
@@ -56,6 +56,9 @@ class Cli:
 
                 if cmd == 'ip':
                     print(self.mesh.ip())
+
+                elif cmd == 'battery':
+                    print("Battery: ", str(self.mesh.get_battery())+"%")
 
                 elif cmd == 'mac':
                     # read/write LoRa MAC address
@@ -154,9 +157,26 @@ class Cli:
                     if self.sleep:
                         self.sleep(timeout)
 
-                # elif cmd == "ble":
-                #     # reset BLE connection
-                #     self.ble_comm.restart()
+                elif cmd == "ble":
+                    # reset BLE connection
+                    self.ble_comm.restart()
+
+                elif cmd == "ble_stat":
+                    print("BLE Connection Status:",self.ble_comm.status['connected'])
+
+                elif cmd == "sb":
+                    try:
+                        mess = input('(message)<')
+                        # typ = input('(type, 0=text, 1=file, Enter for text)<')
+                    except:
+                        continue
+                    data = {
+                        'to': -1,
+                        'b': mess,
+                        'id': 12345,
+                        'ts': int(time.time()),
+                    }
+                    self.mesh.send_message(data)
 
                 # elif cmd == "stat":
                 #     # do some statistics

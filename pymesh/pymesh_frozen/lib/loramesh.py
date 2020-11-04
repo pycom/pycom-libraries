@@ -132,6 +132,10 @@ class Loramesh:
         ip = self.unique_ip_prefix + hex(mac & 0xFFFF)[2:]
         return ip
 
+    def ip_broadcast(self):
+        ip = "ff02::1"
+        return ip
+
     def _add_ipv6_unicast(self):
         self.unique_ip_prefix = "fdde:ad00:beef:0::"
         command = "ipaddr add " + self.ip_mac_unique(self.mac_short)

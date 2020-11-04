@@ -47,6 +47,8 @@ class BleRpc:
 
         self.ble_comm.on_disconnect = self.ble_on_disconnect
 
+        self.mesh.meshaging.ble_status = self.ble_comm.status['connected']
+
 
     def terminate(self):
         ''' kill all, to exit nicely '''
@@ -100,12 +102,13 @@ class RXWorker:
         with self.q_lock:
             self.q = self.q + bytes
 
-            # chunks = [ self.q[i:i+self.HEADSIZE] for i in range(0, len(self.q), self.HEADSIZE) ]
-            # for chunk in chunks:
-            #     self.chr.value(chunk)
-
-            #self.chr.value('')
-        #self.chr.value(bytes)
+        ##Notification necessary
+        #     chunks = [ self.q[i:i+self.HEADSIZE] for i in range(0, len(self.q), self.HEADSIZE) ]
+        #     for chunk in chunks:
+        #         self.chr.value(chunk)
+        #
+        #     self.chr.value('')
+        # self.chr.value(bytes)
 
     def interval_cb(self, alarm):
         self.call_cnt = self.call_cnt + 1
@@ -204,7 +207,8 @@ class RPCHandler:
                 message = msgpack.packb(['call_result', uuid, result])
             except Exception as e:
                 sys.print_exception(e)
-                print('could not send result: {}'.format(result))
+                # print('could not send result: {}'.format(result))
+                print('could not send result: ',fn)
                 return
 
 
@@ -308,6 +312,12 @@ class RPCHandler:
             'id': '<uuid>',
             } """
         return self.mesh.get_rcv_message()
+
+    def gps(self):
+        return self.mesh.get_gps()
+
+    def battery(self):
+        return self.mesh.get_battery()
 
     # def send_image(self, data):
     #     """ sends an image

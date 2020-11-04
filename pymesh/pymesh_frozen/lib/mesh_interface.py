@@ -25,6 +25,10 @@ try:
 except:
     from _pymesh_debug import *
 
+from battery import Battery
+
+from gps import Gps
+
 __version__ = '6'
 """
 __version__ = '6'
@@ -51,8 +55,8 @@ class MeshInterface:
 
     def __init__(self, config, message_cb):
         self.lock = _thread.allocate_lock()
-        self.meshaging = Meshaging(self.lock)
         self.config = config
+        self.meshaging = Meshaging(self.lock, self.config)
         self.mesh = MeshInternal(self.meshaging, config, message_cb)
         self.sleep_function = None
         self.single_leader_ts = 0
@@ -290,3 +294,9 @@ class MeshInterface:
     #         # parent_mac = 0
     #     print_debug(3, 'Parent mac is: %s'%parent_mac)
     #     return parent_mac
+
+    def get_battery(self):
+        return self.meshaging.battery_level.get_battery_level()
+
+    def get_gps(self):
+        return Gps.get_location()

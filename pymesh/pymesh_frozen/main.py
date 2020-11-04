@@ -1,5 +1,6 @@
 import pycom
 import time
+from machine import Timer
 
 try:
     from pymesh_config import PymeshConfig
@@ -45,7 +46,16 @@ while not pymesh.is_connected():
     time.sleep(3)
 
 # send message to the Node having MAC address 5
-pymesh.send_mess(5, "Hello World")
+pymesh.send_mess(-1, "Hello World")
+
+##BROADCAST BATTERY AND GPS###############################################################
+def broadcast_handler(broadcast_alarm):
+    # print("battery:", pymesh.get_battery_level())
+    pymesh.send_mess(-1, pymesh.get_battery_level()) #+ pymesh.get_location())
+
+BROADCAST_INTERVAL = const(120)
+broadcast_alarm = Timer.Alarm(broadcast_handler, BROADCAST_INTERVAL, periodic=True)
+##BROADCAST BATTERY AND GPS###############################################################
 
 # def new_br_message_cb(rcv_ip, rcv_port, rcv_data, dest_ip, dest_port):
 #     ''' callback triggered when a new packet arrived for the current Border Router,

@@ -13,7 +13,12 @@ try:
     from pymesh_debug import print_debug
 except:
     from _pymesh_debug import print_debug
-    
+
+try:
+    from battery import Battery
+except:
+    from _battery import Battery
+
 __version__ = '1'
 """
 * initial version
@@ -26,13 +31,16 @@ class Meshaging:
 
     on_rcv_message = None
     on_rcv_ack = None
+    ble_status = None
 
-    def __init__(self, lock):
-        #self.mesh = mesh
+    def __init__(self, lock, mesh):
+        self.mesh = mesh
         self.lock = lock
         self.dict = {}
         self.rcv_dict = {}
         self.rcv_mess_new = None
+
+        self.battery_level = Battery()
 
     def send_message(self, mac, msg_type, payload, id, ts):
         """ send a new message """
@@ -42,7 +50,7 @@ class Meshaging:
         message = Message((mac, msg_type, payload, id, ts))
         self.dict[mac] = message
         print_debug(3, "Added new message for %X: %s" % (mac, str(payload)))
-        
+
         return True
 
     def add_rcv_message(self, message):
@@ -50,6 +58,12 @@ class Meshaging:
         message.ts = time.time()
         self.rcv_dict[message.mac] = message
         self.rcv_mess_new = message
+
+        if message.payload == b'B%':
+            self.send_message(message.mac, message.TYPE_TEXT, "B%"+ str(self.battery_level.get_battery_level()), message.id, time.time())
+
+        if message.payload == b'BLE?':
+            self.send_message(message.mac, message.TYPE_TEXT, "BLE"+ str(self.ble_status), message.id, time.time())
 
         if message.payload == b'dog':#🐕':
             message.payload = 'Picture started receiving'
@@ -80,7 +94,7 @@ class Meshaging:
                 print_debug(3, 'ACK from dog message, start picture sending')
                 del self.dict[message.mac]
                 self.send_message(message.mac, message.TYPE_IMAGE, 'dog.jpg', message.id, time.time())
-                
+
                 if self.on_rcv_message:
                     mess = Message((message.mac, message.TYPE_TEXT, 'Receiving the picture', message.id+1, time.time()))
                     self.on_rcv_message(mess)
@@ -117,9 +131,9 @@ class Meshaging:
         message.id = message.id + 1
         if self.on_rcv_message:
             self.on_rcv_message(message)
-        
+
         self.send_message(message.mac, message.TYPE_TEXT, 'Picture was received', message.id+1, time.time())
-        
+
         pass
 
 class Message:
@@ -217,7 +231,7 @@ class Send_File:
             self.state = DONE
             return
         self.size = 0
-        
+
 
         self.start = time.time()
         self.state = INIT

@@ -161,6 +161,8 @@ class MeshInternal:
             if mess.state == Message.MESS_STATE_IP_PENDING:
                 mess.ip = self.mesh.ip_mac_unique(mac)
                 mess.mac = self.mesh.MAC
+                if mac == -1:
+                    mess.ip = self.mesh.ip_broadcast()
                 mess.last_tx_ts = time.time()
                 self.send_message(mess)
                 mess.state = Message.MESS_STATE_SENT
