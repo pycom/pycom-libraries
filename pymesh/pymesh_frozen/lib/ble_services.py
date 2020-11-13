@@ -8,6 +8,8 @@
 from network import Bluetooth
 import time
 import msgpack
+import machine
+import ubinascii
 
 VERSION = "1.0.0"
 
@@ -18,7 +20,7 @@ class BleServices:
         self.ble_name = ble_name
         self.on_disconnect = None
         self._init()
-    
+
     def _init(self):
         self.status = {
             'connected' : False
@@ -39,6 +41,21 @@ class BleServices:
         self.chr_tx = srv_tx.characteristic(uuid=0xed0e, value=0)
 
         self.unpacker = None
+
+        srv_mac = bluetooth.service(uuid=0xee00, isprimary=True)
+        self.chr_mac = srv_mac.characteristic(uuid=0xee0e, permissions=(1 << 0), properties=(1 << 1) | (1 << 4), value='mac')
+
+        self.chr_mac.callback(trigger=Bluetooth.CHAR_READ_EVENT, handler=self.chr_mac_handler)
+
+    def chr_mac_handler(self, chr, data):
+        events = chr.events()
+        if events & Bluetooth.CHAR_READ_EVENT:
+            ble_mac_str = ubinascii.hexlify(machine.unique_id()).decode("utf-8")
+            ble_mac_int = int(ble_mac_str,16) + 2
+            ble_mac_str = str(hex(ble_mac_int))
+            b=ble_mac_str[2:]
+            ble_mac_str=b[:2]+":"+b[2:4]+":"+b[4:6]+":"+b[6:8]+":"+b[8:10]+":"+b[10:]
+            chr.value(ble_mac_str.upper())
 
     def conn_cb(self, bt_o):
         #global ble_connected
@@ -77,4 +94,3 @@ class BleServices:
         # time.sleep(1)
         # self._init()
         pass
-        

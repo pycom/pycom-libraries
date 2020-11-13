@@ -19,6 +19,8 @@ try:
 except:
     from _battery import Battery
 
+from gps import Gps
+
 __version__ = '1'
 """
 * initial version
@@ -60,10 +62,13 @@ class Meshaging:
         self.rcv_mess_new = message
 
         if message.payload == b'B%':
-            self.send_message(message.mac, message.TYPE_TEXT, "B%"+ str(self.battery_level.get_battery_level()), message.id, time.time())
+            self.send_message(message.mac, message.TYPE_TEXT, "B@"+ str(self.battery_level.get_battery_level()), message.id, time.time())
 
         if message.payload == b'BLE?':
             self.send_message(message.mac, message.TYPE_TEXT, "BLE"+ str(self.ble_status), message.id, time.time())
+
+        if message.payload == b'G^':
+            self.send_message(message.mac, message.TYPE_TEXT, "G@"+str(Gps.get_location()), message.id, time.time())
 
         if message.payload == b'dog':#🐕':
             message.payload = 'Picture started receiving'
@@ -174,6 +179,7 @@ class Message:
     def _init_tuple(self, data):
         # (mac, payload, id, ts)
         (self.mac, self.type, self.payload, self.id, self.ts) = data
+        # (self.mac, self.type, self.payload+"-"+get_battery_level, self.id, self.ts) = data
         self.state = self.MESS_STATE_IP_PENDING
         if self.type == TYPE_IMAGE:
             self.send_f = Send_File(self.payload)

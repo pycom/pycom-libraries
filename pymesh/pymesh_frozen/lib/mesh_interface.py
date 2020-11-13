@@ -66,6 +66,9 @@ class MeshInterface:
         self._start_timer()
         # self.statistics = Statistics(self.meshaging)
 
+        self.config_get = None
+        self.config_set = None
+
         pass
 
     def _start_timer(self):
@@ -281,6 +284,28 @@ class MeshInterface:
         ret = self.ot_cli('leaderweight '+ str(weight))
         return ret == ''
 
+    def set_mesh_key(self, key):
+        pymesh_config = {}
+        if self.config_get:
+            pymesh_config = self.config_get()
+        # "Pymesh": {"key": "112233"}
+        pymesh_config["Pymesh"] = {"key": key}
+        if self.config_set:
+            self.config_set(pymesh_config)
+
+        print("Mesh Key is set to:", key)
+        if self.sleep_function:
+            self.sleep_function(1)
+        return True
+
+    def get_mesh_key(self):
+        pymesh_config = {}
+        if self.config_get:
+            pymesh_config = self.config_get()
+        pymesh = pymesh_config["Pymesh"]
+        key = pymesh["key"]
+        return key
+
     # def parent(self):
     #     """ Returns the Parent MAC for the current Child node
     #     Returns 0 if node is not Child """
@@ -294,9 +319,3 @@ class MeshInterface:
     #         # parent_mac = 0
     #     print_debug(3, 'Parent mac is: %s'%parent_mac)
     #     return parent_mac
-
-    def get_battery(self):
-        return self.meshaging.battery_level.get_battery_level()
-
-    def get_gps(self):
-        return Gps.get_location()

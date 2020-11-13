@@ -77,6 +77,9 @@ class Pymesh:
 
             self.ble_rpc = BleRpc(self.config, self.mesh)
 
+        self.mesh.config_get = self.config_get
+        self.mesh.config_set = self.config_set
+
     def cli_start(self):
         if self.cli is None:
             self.cli = Cli(self.mesh, self, self.ble_rpc.ble_comm)
@@ -223,7 +226,7 @@ class Pymesh:
 
     def config_set(self, config_json_dict):
         PymeshConfig.write_config(config_json_dict)
-        return self.config
+        return
 
     def mac(self):
         return self.mesh.mesh.MAC

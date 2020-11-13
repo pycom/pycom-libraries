@@ -70,6 +70,7 @@ class Loramesh:
     def __init__(self, config):
         """ Constructor """
         self.config_lora = config.get('LoRa')
+        self.config_mesh = config.get('Pymesh')
         self._lora_init()
 
         # get Lora MAC address
@@ -119,7 +120,9 @@ class Loramesh:
             bandwidth = self.config_lora.get("bandwidth"),
             sf = self.config_lora.get("sf"),
             tx_power = tx_dBm)
-        self.mesh = self.lora.Mesh() #start Mesh
+
+        masterkey = ubinascii.unhexlify(self.config_mesh.get("key"))
+        self.mesh = self.lora.Mesh(key=masterkey) #start Mesh
 
     def pause(self):
         self.mesh.deinit()
@@ -133,7 +136,7 @@ class Loramesh:
         return ip
 
     def ip_broadcast(self):
-        ip = "ff02::1"
+        ip = "ff03::1"
         return ip
 
     def _add_ipv6_unicast(self):

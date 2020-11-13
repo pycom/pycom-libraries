@@ -10,7 +10,7 @@ try:
     from pymesh_debug import print_debug
 except:
     from _pymesh_debug import print_debug
-    
+
 import time
 # from pytrack import Pytrack
 # from L76GNSS import L76GNSS
@@ -29,14 +29,14 @@ class Gps:
     l76 = None
     _timer = None
     #is_set = False
-    
+
     @staticmethod
     def set_location(latitude, longitude):
         dlat = str(type(latitude))
         dlon = str(type(longitude))
         if dlat == dlon == "<class 'float'>":
             Gps.lat = latitude
-            Gps.lon = longitude            
+            Gps.lon = longitude
             is_set = True
         else:
             print_debug(3, "Error parsing ", latitude, longitude)

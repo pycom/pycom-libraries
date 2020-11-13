@@ -57,6 +57,16 @@ class Cli:
                 if cmd == 'ip':
                     print(self.mesh.ip())
 
+                elif cmd == 'key':
+                    try:
+                        key = input('(key)<')
+                    except:
+                        continue
+                    if key != '':
+                        self.mesh.set_mesh_key(key)
+                    else:
+                        print(self.mesh.get_mesh_key())
+
                 elif cmd == 'battery':
                     print("Battery: ", str(self.mesh.get_battery())+"%")
 
@@ -83,12 +93,13 @@ class Cli:
                     print("self info:", node_info)
 
                 elif cmd == 'mni':
-                    for mac in last_mesh_mac_list:
-                        node_info = self.mesh.get_node_info(mac)
-                        time.sleep(.5)
-                        if len(node_info) > 0:
-                            last_mesh_node_info[mac] = node_info
-                    print('last_mesh_node_info', json.dumps(last_mesh_node_info))
+                    if len(last_mesh_mac_list) != 0:
+                        for mac in last_mesh_mac_list[0]:
+                            node_info = self.mesh.get_node_info(mac)
+                            time.sleep(.5)
+                            if len(node_info) > 0:
+                                last_mesh_node_info[mac] = node_info
+                        print('last_mesh_node_info', json.dumps(last_mesh_node_info))
 
                 elif cmd == 'mp':
                     mesh_pairs = self.mesh.get_mesh_pairs()
@@ -119,13 +130,14 @@ class Cli:
                         'id': 12345,
                         'ts': int(time.time()),
                     }
+                    # print(self.mesh.send_message(data))
                     while repetitions > 0:
                         print(self.mesh.send_message(data))
                         repetitions = repetitions - 1
                         if repetitions > 0:
                             print("Remaining TX packets:", repetitions)
                             time.sleep(interval)
-                        
+
 
                 elif cmd == 'ws':
                     to = int(input('(to)<'))
@@ -286,7 +298,7 @@ class Cli:
 
                 elif cmd == "resume":
                     self.pymesh.resume()
-                
+
                 elif cmd == "tx_pow":
                     print("LoRa stats:", self.pymesh.mesh.mesh.mesh.lora.stats())
                     tx_str = input('(tx_pow[2-20])<')
@@ -298,7 +310,7 @@ class Cli:
                         self.pymesh.resume(tx_pow)
                     except:
                         print("Invalid value")
-                
+
                 elif cmd == "stop":
                     self.pymesh.cli = None
                     _thread.exit()

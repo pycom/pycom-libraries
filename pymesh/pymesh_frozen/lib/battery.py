@@ -7,7 +7,7 @@ available at https://www.pycom.io/opensource/licensing
 '''
 
 import machine
-from machine import Timer,Pin,ADC
+from machine import Timer,Pin
 import time
 
 __version__ = '1'

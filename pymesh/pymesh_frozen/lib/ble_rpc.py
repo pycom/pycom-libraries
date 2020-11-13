@@ -8,6 +8,7 @@ available at https://www.pycom.io/opensource/licensing
 import _thread
 import time
 from machine import Timer
+from machine import RTC
 from network import Bluetooth
 import sys
 import json
@@ -24,10 +25,7 @@ try:
 except:
     from _pymesh_config import PymeshConfig
 
-try:
-    from gps import Gps
-except:
-    from _gps import Gps
+from gps import Gps
 
 class BleRpc:
 
@@ -63,9 +61,23 @@ class BleRpc:
             'ts' : message.ts,
             'id' : message.id,
         }
-
-        msg = msgpack.packb(['notify', 'msg', message_data])
+        msg = str(message.payload)
+        if (message.mac == self.mesh.mesh.MAC):
+            payload = b'G@'
+            gps_loc = str(Gps.get_location())
+            payload = payload + gps_loc
+            message_data['payload'] = payload
+            msg=str(payload)
+        if (not (msg.find('@')<0)):
+            msg_gps = msg.split("@")[0][2:]
+            if (msg_gps == 'G'):
+                msg = msgpack.packb(['notify', 'gps', message_data])
+                print("notify gps=", message_data)
+        else:
+            msg = msgpack.packb(['notify', 'msg', message_data])
+            print("message_data", message_data)
         self.rx_worker.put(msg)
+        print("putting", msg)
         print(message_data['payload'])
         print("%d =================  RECEIVED :) :) :) "%time.ticks_ms())
 
@@ -99,16 +111,20 @@ class RXWorker:
         self._timer = Timer.Alarm(self.interval_cb, self.INTERVAL, periodic=True)
 
     def put(self, bytes):
-        with self.q_lock:
-            self.q = self.q + bytes
+        if(self.ble_comm.status['connected']):
+            with self.q_lock:
+                self.q = self.q + bytes
+                print("q=",self.q, "    bytes=",bytes)
 
-        ##Notification necessary
-        #     chunks = [ self.q[i:i+self.HEADSIZE] for i in range(0, len(self.q), self.HEADSIZE) ]
-        #     for chunk in chunks:
-        #         self.chr.value(chunk)
-        #
-        #     self.chr.value('')
-        # self.chr.value(bytes)
+                ##Notification necessary
+                chunks = [ self.q[i:i+self.HEADSIZE] for i in range(0, len(self.q), self.HEADSIZE) ]
+                for chunk in chunks:
+                    self.chr.value(chunk)
+                    print("chunk=",chunk, "  len=", len(chunk))
+
+                self.chr.value('')
+            # self.chr.value(bytes)
+            # print("bytes", bytes)
 
     def interval_cb(self, alarm):
         self.call_cnt = self.call_cnt + 1
@@ -149,15 +165,15 @@ class TXWorker:
 
         self.chr.callback(trigger=Bluetooth.CHAR_WRITE_EVENT | Bluetooth.CHAR_READ_EVENT, handler=self.cb_handler)
 
-    def cb_handler(self, chr):
+    def cb_handler(self, chr, data):
         events = chr.events()
         if  events & Bluetooth.CHAR_WRITE_EVENT:
             self.last_value = chr.value()
-            #print("Write request with value = {}".format(self.last_value))
+            # print("Write request with value = {}".format(self.last_value))
 
             self.on_write(self.last_value)
         else:
-            #print('Read request on char 1')
+            # print('Read request on char 1')
             return self.last_value
 
 class RPCHandler:
@@ -171,9 +187,12 @@ class RPCHandler:
 
         tx_worker.on_write = self.feed
 
+        self.rtc = None
+
     def feed(self, message):
-        #print('feeding (rpc)', message)
+        print('feeding (rpc)', message)
         self.unpacker.feed(message)
+        print('will try')
         try:
             [self.resolve(x) for x in self.unpacker]
         except Exception as e:
@@ -185,8 +204,9 @@ class RPCHandler:
 
 
     def resolve(self, obj):
-        #print('resolving: ', obj)
+        print('resolving: ', obj)
         obj = list(obj)
+        # print("obj: "obj)
         type = obj[0]
 
         if type == 'call':
@@ -212,8 +232,8 @@ class RPCHandler:
                 return
 
 
-            #print('result', result)
-            #print('message', message)
+            # print('result', result)
+            print('message', message)
             self.rx_worker.put(message)
 
     # def demo_echo_fn(self, *args):
@@ -286,6 +306,23 @@ class RPCHandler:
             'id': 12345,
             'ts': 123123123,
         }"""
+        # if self.rtc == None:
+        #     ts_rcvd = time.localtime(data['ts'])/1000
+        #     self.rtc=RTC()
+        #     self.rtc.init(ts_rcvd)
+        #     print("ts=", data['ts'])
+        print("%d: Send Msg ---------------------->>>>>>>> "%time.ticks_ms())
+        return self.mesh.send_message(data)
+
+    def get_gps(self, data):
+        """ sends a message with id, to m(MAC)
+            return True if there is buffer to store it (to be sent)"""
+        """ data is dictionary data = {
+            'to': 0x5,
+            'b': 'text',
+            'id': 12345,
+            'ts': 123123123,
+        }"""
         print("%d: Send Msg ---------------------->>>>>>>> "%time.ticks_ms())
         return self.mesh.send_message(data)
 
@@ -313,11 +350,13 @@ class RPCHandler:
             } """
         return self.mesh.get_rcv_message()
 
-    def gps(self):
-        return self.mesh.get_gps()
+    def set_mesh_key(self, key):
+        rslt = self.mesh.set_mesh_key(key)
+        return rslt
 
-    def battery(self):
-        return self.mesh.get_battery()
+    def get_mesh_key(self):
+        key = self.mesh.get_mesh_key()
+        return key
 
     # def send_image(self, data):
     #     """ sends an image
