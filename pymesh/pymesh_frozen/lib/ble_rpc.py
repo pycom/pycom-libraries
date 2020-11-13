@@ -188,6 +188,7 @@ class RPCHandler:
         tx_worker.on_write = self.feed
 
         self.rtc = None
+        ble_comm.mesh = mesh
 
     def feed(self, message):
         print('feeding (rpc)', message)
@@ -349,14 +350,6 @@ class RPCHandler:
             'id': '<uuid>',
             } """
         return self.mesh.get_rcv_message()
-
-    def set_mesh_key(self, key):
-        rslt = self.mesh.set_mesh_key(key)
-        return rslt
-
-    def get_mesh_key(self):
-        key = self.mesh.get_mesh_key()
-        return key
 
     # def send_image(self, data):
     #     """ sends an image

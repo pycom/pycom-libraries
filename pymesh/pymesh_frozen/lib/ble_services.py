@@ -44,8 +44,32 @@ class BleServices:
 
         srv_mac = bluetooth.service(uuid=0xee00, isprimary=True)
         self.chr_mac = srv_mac.characteristic(uuid=0xee0e, permissions=(1 << 0), properties=(1 << 1) | (1 << 4), value='mac')
-
         self.chr_mac.callback(trigger=Bluetooth.CHAR_READ_EVENT, handler=self.chr_mac_handler)
+
+        srv_key = bluetooth.service(uuid=0xea00, isprimary=True, nbr_chars=2)
+        self.chr_get_key = srv_key.characteristic(uuid=0xea0e, permissions=(1 << 0), properties=(1 << 1) | (1 << 4), value='key')
+        self.chr_set_key = srv_key.characteristic(uuid=0xea0f, value='key')
+        self.chr_set_key.callback(trigger=Bluetooth.CHAR_WRITE_EVENT, handler=self.chr_set_key_handler)
+        self.chr_get_key.callback(trigger=Bluetooth.CHAR_READ_EVENT, handler=self.chr_get_key_handler)
+
+        self.mesh = None
+
+    def chr_get_key_handler(self, chr, data):
+        events = chr.events()
+        if events & Bluetooth.CHAR_READ_EVENT:
+            key = self.get_mesh_key()
+            print(key)
+            chunks=[key[i:i+20] for i in range(0, len(key), 20)]
+            for chunk in chunks:
+                print(chunk)
+                chr.value(chunk)
+
+    def chr_set_key_handler(self, chr, data):
+        events = chr.events()
+        if events & Bluetooth.CHAR_WRITE_EVENT:
+            val = chr.value()
+            print("written val:", val)
+            # self.set_mesh_key(val)
 
     def chr_mac_handler(self, chr, data):
         events = chr.events()
@@ -94,3 +118,11 @@ class BleServices:
         # time.sleep(1)
         # self._init()
         pass
+
+    def set_mesh_key(self, key):
+        rslt = self.mesh.set_mesh_key(key)
+        return rslt
+
+    def get_mesh_key(self):
+        key = self.mesh.get_mesh_key()
+        return key
