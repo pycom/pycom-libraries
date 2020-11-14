@@ -19,7 +19,10 @@ try:
 except:
     from _battery import Battery
 
-from gps import Gps
+try:
+    from gps import Gps
+except:
+    from _gps import Gps
 
 __version__ = '1'
 """

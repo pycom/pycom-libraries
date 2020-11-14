@@ -25,7 +25,10 @@ try:
 except:
     from _pymesh_config import PymeshConfig
 
-from gps import Gps
+try:
+    from gps import Gps
+except:
+    from _gps import Gps
 
 class BleRpc:
 
@@ -225,7 +228,7 @@ class RPCHandler:
                 result = json.loads(json.dumps(result))
                 print('calling RPC: {} - {}'.format(fn_name, result))
 
-                message = msgpack.packb(['call_result', uuid, result])
+                message = msgpack.packb(['call_result', uuid, result, fn_name])
             except Exception as e:
                 sys.print_exception(e)
                 # print('could not send result: {}'.format(result))
@@ -351,6 +354,15 @@ class RPCHandler:
             } """
         return self.mesh.get_rcv_message()
 
+    def set_key(self, key):
+        try:
+            key_str = key['key']
+        except:
+            print_debug(1, 'set_key: wrong input params')
+        return self.mesh.set_mesh_key(key_str)
+
+    def get_key(self):
+        return self.mesh.get_mesh_key()
     # def send_image(self, data):
     #     """ sends an image
     #         return True if there is buffer to store it (to be sent)"""

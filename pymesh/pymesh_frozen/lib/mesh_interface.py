@@ -25,9 +25,15 @@ try:
 except:
     from _pymesh_debug import *
 
-from battery import Battery
+try:
+    from battery import Battery
+except:
+    from battery import Battery
 
-from gps import Gps
+try:
+    from gps import Gps
+except:
+    from gps import Gps
 
 __version__ = '6'
 """
@@ -285,17 +291,16 @@ class MeshInterface:
         return ret == ''
 
     def set_mesh_key(self, key):
-        pymesh_config = {}
-        if self.config_get:
-            pymesh_config = self.config_get()
-        # "Pymesh": {"key": "112233"}
-        pymesh_config["Pymesh"] = {"key": key}
-        if self.config_set:
-            self.config_set(pymesh_config)
+        # pymesh_config = {}
+        # if self.config_get:
+        #     pymesh_config = self.config_get()
+        # pymesh_config["Pymesh"] = {"key": key}
+        # if self.config_set:
+        #     self.config_set(pymesh_config)
 
         print("Mesh Key is set to:", key)
-        if self.sleep_function:
-            self.sleep_function(1)
+        # if self.sleep_function:
+        #     self.sleep_function(1)
         return True
 
     def get_mesh_key(self):
