@@ -32,14 +32,21 @@ class Pycoproc:
     CMD_POKE = const(0x01)
     CMD_MAGIC = const(0x02)
     CMD_HW_VER = const(0x10)
-    CMD_FW_VER = const(0x11)
-    CMD_PROD_ID = const(0x12)
+    CMD_FW_VER = const(0x11) #define SW_VERSION (15)
+    CMD_PROD_ID = const(0x12) #USB product ID, e.g. PYSENSE (0xF012)
     CMD_SETUP_SLEEP = const(0x20)
     CMD_GO_SLEEP = const(0x21)
     CMD_CALIBRATE = const(0x22)
+    CMD_GO_NAP = const(0x23)
     CMD_BAUD_CHANGE = const(0x30)
     CMD_DFU = const(0x31)
     CMD_RESET = const(0x40)
+    # CMD_GO_NAP options
+    SD_CARD_OFF       = const(0x1)
+    SENSORS_OFF       = const(0x2)
+    ACCELEROMETER_OFF = const(0x4)
+    FIPY_OFF          = const(0x8)
+
 
     REG_CMD = const(0)
     REG_ADDRL = const(1)
@@ -62,17 +69,26 @@ class Pycoproc:
     OPTION_REG_ADDR = const(0x95)
 
     _ADCON0_CHS_POSN = const(0x02)
+    _ADCON0_CHS_AN5 = const(0x5) # AN5 / RC1
+    _ADCON0_CHS_AN6 = const(0x6) # AN6 / RC2
     _ADCON0_ADON_MASK = const(0x01)
-    _ADCON1_ADCS_POSN = const(0x04)
+    _ADCON0_ADCS_F_OSC_64 = const(0x6) #  A/D Conversion Clock
     _ADCON0_GO_nDONE_MASK = const(0x02)
+    _ADCON1_ADCS_POSN = const(0x04)
 
     ADRESL_ADDR = const(0x09B)
     ADRESH_ADDR = const(0x09C)
 
     TRISA_ADDR = const(0x08C)
+    TRISB_ADDR = const(0x08D)
     TRISC_ADDR = const(0x08E)
 
+    LATA_ADDR = const(0x10C)
+    LATB_ADDR = const(0x10D)
+    LATC_ADDR = const(0x10E)
+
     PORTA_ADDR = const(0x00C)
+    PORTB_ADDR = const(0x00C)
     PORTC_ADDR = const(0x00E)
 
     WPUA_ADDR = const(0x20C)
@@ -85,6 +101,16 @@ class Pycoproc:
 
     EXP_RTC_PERIOD = const(7000)
 
+    @staticmethod
+    def wake_up():
+        # P9 is connected to RC1, make P9 an output
+        p9 = Pin("P9", mode=Pin.OUT)
+        # toggle rc1 to trigger wake up
+        p9(1)
+        time.sleep(0.1)
+        p9(0)
+        time.sleep(0.1)
+
     def __init__(self, i2c=None, sda='P22', scl='P21'):
         if i2c is not None:
             self.i2c = i2c
@@ -95,37 +121,52 @@ class Pycoproc:
         self.scl = scl
         self.clk_cal_factor = 1
         self.reg = bytearray(6)
-        self.wake_int = False
-        self.wake_int_pin = False
-        self.wake_int_pin_rising_edge = True
 
         # Make sure we are inserted into the
         # correct board and can talk to the PIC
-        try:
-            self.read_fw_version()
-        except Exception as e:
-            raise Exception('Board not detected: {}'.format(e))
+        retry = 0
+        while True:
+            try:
+                self.read_fw_version()
+                break
+            except Exception as e:
+                if retry > 10:
+                    raise Exception('Board not detected: {}'.format(e))
+                print("Couldn't init Pycoproc. Maybe the PIC is still napping. Try to wake it. ({}, {})".format(retry, e))
+                Pycoproc.wake_up()
+                # # p9 is connected to RC1, toggle it to wake PIC
+                # p9 = Pin("P9", mode=Pin.OUT)
+                # p9(1)
+                # time.sleep(0.1)
+                # p9(0)
+                # time.sleep(0.1)
+                # Pin("P9", mode=Pin.IN)
+                retry += 1
 
         # init the ADC for the battery measurements
-        self.poke_memory(ANSELC_ADDR, 1 << 2)
-        self.poke_memory(ADCON0_ADDR, (0x06 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK)
-        self.poke_memory(ADCON1_ADDR, (0x06 << _ADCON1_ADCS_POSN))
+        self.write_byte(ANSELC_ADDR, 1 << 2) # RC2 analog input
+        self.write_byte(ADCON0_ADDR, (_ADCON0_CHS_AN6 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK) # select analog channel and enable ADC
+        self.write_byte(ADCON1_ADDR, (_ADCON0_ADCS_F_OSC_64 << _ADCON1_ADCS_POSN)) # ADC conversion clock
+
         # enable the pull-up on RA3
-        self.poke_memory(WPUA_ADDR, (1 << 3))
+        self.write_byte(WPUA_ADDR, (1 << 3))
 
-        # set RC6 and RC7 as outputs and enable power to the sensors and the GPS
-        self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
-        self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
+        # set RC6 and RC7 as outputs
+        self.write_bit(TRISC_ADDR, 6, 0) # 3V3SENSOR_A, power to Accelerometer
+        self.write_bit(TRISC_ADDR, 7, 0) # PWR_CTRL power to other sensors
 
+        # enable power to the sensors and the GPS
+        self.gps_standby(False) # GPS, RC4
+        self.sensor_power() # PWR_CTRL, RC7
+        self.sd_power() # LP_CTRL, RA5
 
-        self.gps_standby(False)
-        self.sensor_power()
-        self.sd_power()
-
+        usb_pid=self.read_product_id()
+        if usb_pid != 0xf012:
+            raise ValueError('Not a Pysense2/Pytrack2 ({})'.format(usb_pid))
         # for Pysense/Pytrack 2.0, the minimum firmware version is 15
-        if self.read_fw_version() < 15:
-            raise ValueError('Firmware out of date')
-
+        fw = self.read_fw_version()
+        if fw < 15:
+            raise ValueError('Firmware out of date', fw)
 
     def _write(self, data, wait=True):
         self.i2c.writeto(I2C_SLAVE_ADDR, data)
@@ -162,11 +203,11 @@ class Pycoproc:
         d = self._read(2)
         return (d[1] << 8) + d[0]
 
-    def peek_memory(self, addr):
+    def read_byte(self, addr):
         self._write(bytes([CMD_PEEK, addr & 0xFF, (addr >> 8) & 0xFF]))
         return self._read(1)[0]
 
-    def poke_memory(self, addr, value):
+    def write_byte(self, addr, value):
         self._write(bytes([CMD_POKE, addr & 0xFF, (addr >> 8) & 0xFF, value & 0xFF]))
 
     def magic_write_read(self, addr, _and=0xFF, _or=0, _xor=0):
@@ -182,6 +223,25 @@ class Pycoproc:
     def set_bits_in_memory(self, addr, bits):
         self.magic_write_read(addr, _or=bits)
 
+    def read_bit(self, address, bit):
+        b = self.read_byte(address)
+        # print("{0:08b}".format(b))
+        mask = (1<<bit)
+        # print("{0:08b}".format(mask))
+        # print("{0:08b}".format(b & mask))
+        if b & mask:
+            return 1
+        else:
+            return 0
+
+    def write_bit(self, address, bit, level):
+        if level == 1:
+            self.set_bits_in_memory(address, (1<<bit) )
+        elif level == 0:
+            self.mask_bits_in_memory(address, ~(1<<bit) )
+        else:
+            raise Exception("level", level)
+
     def setup_sleep(self, time_s):
         try:
             self.calibrate_rtc()
@@ -192,38 +252,45 @@ class Pycoproc:
             time_s = 2**(8*3)-1
         self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
 
-    def go_to_sleep(self, gps=True):
+    def go_to_sleep(self, gps=True, pycom_module_off=True, accelerometer_off=True, wake_interrupt=False):
         # enable or disable back-up power to the GPS receiver
         self.gps_standby(gps)
-        self.sensor_power(False)
-        self.sd_power(False)
 
         # disable the ADC
-        self.poke_memory(ADCON0_ADDR, 0)
+        self.write_byte(ADCON0_ADDR, 0)
 
-        if self.wake_int:
-            # Don't touch RA3, RA5 or RC1 so that interrupt wake-up works
-            self.poke_memory(ANSELA_ADDR, ~(1 << 3))
-            self.poke_memory(ANSELC_ADDR, ~((1 << 6) | (1 << 7) | (1 << 1)))
-        else:
-            # disable power to the accelerometer, and don't touch RA3 so that button wake-up works
-            self.poke_memory(ANSELA_ADDR, ~(1 << 3))
-            self.poke_memory(ANSELC_ADDR, ~(0))
+        # RC0, RC1, RC2, analog input
+        self.set_bits_in_memory(TRISC_ADDR, (1<<2) | (1<<1) | (1<<0) )
+        self.set_bits_in_memory(ANSELC_ADDR, (1<<2) | (1<<1) | (1<<0) )
 
-        self.poke_memory(ANSELB_ADDR, 0xFF)
+        # RA4 analog input
+        self.set_bits_in_memory(TRISA_ADDR, (1<<4) )
+        self.set_bits_in_memory(ANSELA_ADDR, (1<<4) )
 
-        # check if INT pin (PIC RC1), should be used for wakeup
-        if self.wake_int_pin:
-            if self.wake_int_pin_rising_edge:
-                self.set_bits_in_memory(OPTION_REG_ADDR, 1 << 6) # rising edge of INT pin
-            else:
-                self.mask_bits_in_memory(OPTION_REG_ADDR, ~(1 << 6)) # falling edge of INT pin
+        # RB4, RB5 analog input
+        self.set_bits_in_memory(TRISB_ADDR, (1<<5) | (1<<4) )
+        self.set_bits_in_memory(ANSELB_ADDR, (1<<5) | (1<<4) )
+
+        # actually only B4 and B5
+        # todo: tris=1?
+        self.write_byte(ANSELB_ADDR, 0xff)
+
+        if wake_interrupt:
+            # print("enable wake up PIC from RC1")
+            self.set_bits_in_memory(OPTION_REG_ADDR, 1 << 6) # rising edge of INT pin
             self.mask_bits_in_memory(ANSELC_ADDR, ~(1 << 1)) # disable analog function for RC1 pin
             self.set_bits_in_memory(TRISC_ADDR, 1 << 1) # make RC1 input pin
             self.mask_bits_in_memory(INTCON_ADDR, ~(1 << 1)) # clear INTF
             self.set_bits_in_memory(INTCON_ADDR, 1 << 4) # enable interrupt; set INTE)
 
-        self._write(bytes([CMD_GO_SLEEP]), wait=False)
+        nap_options = SD_CARD_OFF | SENSORS_OFF
+        if pycom_module_off:
+            nap_options |= FIPY_OFF
+        if accelerometer_off:
+            nap_options |= ACCELEROMETER_OFF
+
+        # print("CMD_GO_NAP {0:08b}".format(nap_options))
+        self._write(bytes([CMD_GO_NAP, nap_options]), wait=False)
 
     def calibrate_rtc(self):
         # the 1.024 factor is because the PIC LF operates at 31 KHz
@@ -248,72 +315,50 @@ class Pycoproc:
             self.clk_cal_factor = (EXP_RTC_PERIOD / period) * (1000 / 1024)
         if self.clk_cal_factor > 1.25 or self.clk_cal_factor < 0.75:
             self.clk_cal_factor = 1
+        time.sleep(0.5)
 
     def button_pressed(self):
-        button = self.peek_memory(PORTA_ADDR) & (1 << 3)
+        button = self.read_bit(PORTA_ADDR, 3)
         return not button
 
     def read_battery_voltage(self):
         self.set_bits_in_memory(ADCON0_ADDR, _ADCON0_GO_nDONE_MASK)
         time.sleep_us(50)
-        while self.peek_memory(ADCON0_ADDR) & _ADCON0_GO_nDONE_MASK:
+        while self.read_byte(ADCON0_ADDR) & _ADCON0_GO_nDONE_MASK:
             time.sleep_us(100)
-        adc_val = (self.peek_memory(ADRESH_ADDR) << 2) + (self.peek_memory(ADRESL_ADDR) >> 6)
+        adc_val = (self.read_byte(ADRESH_ADDR) << 2) + (self.read_byte(ADRESL_ADDR) >> 6)
         return (((adc_val * 3.3 * 280) / 1023) / 180) + 0.01    # add 10mV to compensate for the drop in the FET
-
-    def setup_int_wake_up(self, rising, falling):
-        """ rising is for activity detection, falling for inactivity """
-        wake_int = False
-        if rising:
-            self.set_bits_in_memory(IOCAP_ADDR, 1 << 5)
-            wake_int = True
-        else:
-            self.mask_bits_in_memory(IOCAP_ADDR, ~(1 << 5))
-
-        if falling:
-            self.set_bits_in_memory(IOCAN_ADDR, 1 << 5)
-            wake_int = True
-        else:
-            self.mask_bits_in_memory(IOCAN_ADDR, ~(1 << 5))
-        self.wake_int = wake_int
-
-    def setup_int_pin_wake_up(self, rising_edge = True):
-        """ allows wakeup to be made by the INT pin (PIC -RC1) """
-        self.wake_int_pin = True
-        self.wake_int_pin_rising_edge = rising_edge
 
     def gps_standby(self, enabled=True):
         # make RC4 an output
-        self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 4))
+        self.write_bit(TRISC_ADDR, 4, 0)
         if enabled:
             # drive RC4 low
-            self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 4))
+            self.write_bit(LATC_ADDR, 4, 0)
         else:
             # drive RC4 high
-            self.set_bits_in_memory(PORTC_ADDR, 1 << 4)
+            self.write_bit(LATC_ADDR, 4, 1)
 
     def sensor_power(self, enabled=True):
         # make RC7 an output
-        self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
+        self.write_bit(TRISC_ADDR, 7, 0)
         if enabled:
             # drive RC7 high
-            self.set_bits_in_memory(PORTC_ADDR, 1 << 7)
+            self.write_bit(LATC_ADDR, 7, 1)
         else:
             # drive RC7 low
-            self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 7))
+            self.write_bit(LATC_ADDR, 7, 0)
 
     def sd_power(self, enabled=True):
         # make RA5 an output
-        self.mask_bits_in_memory(TRISA_ADDR, ~(1 << 5))
+        self.write_bit(TRISA_ADDR, 5, 0)
         if enabled:
             # drive RA5 high
-            self.set_bits_in_memory(PORTA_ADDR, 1 << 5)
+            self.write_bit(LATA_ADDR, 5, 1)
         else:
             # drive RA5 low
-            self.mask_bits_in_memory(PORTA_ADDR, ~(1 << 5))
+            self.write_bit(LATA_ADDR, 5, 0)
 
-
-    # at the end:
     def reset_cmd(self):
         self._send_cmd(CMD_RESET)
         return
