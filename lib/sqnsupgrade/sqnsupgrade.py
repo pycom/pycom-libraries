@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-VERSION = "1.2.6"
+VERSION = "1.2.7"
 
-# Copyright (c) 2019, Pycom Limited.
+# Copyright (c) 2021, Pycom Limited.
 #
 # This software is licensed under the GNU GPL version 3 or any
 # later version, with permitted additional terms. For more information
@@ -350,7 +350,7 @@ class sqnsupgrade:
         load_fff = True if force_fff else load_fff
         target_baudrate = baudrate
         baudrate = self.__modem_speed if self.__speed_detected else baudrate
-        if debug: print('mirror? {}  recover? {}  resume? {}  direct? {}  atneg_only? {} bootrom? {} load_fff? {}'.format(mirror, recover, resume, direct, atneg_only, bootrom, load_fff))
+        if debug: print('file_path? {} mirror? {}  recover? {}  resume? {}  direct? {}  atneg_only? {} bootrom? {} load_fff? {}'.format(file_path, mirror, recover, resume, direct, atneg_only, bootrom, load_fff))
         if debug: print('baudrate: {} target_baudrate: {}'.format(baudrate, target_baudrate))
         abort = True
         external = False
@@ -522,7 +522,7 @@ class sqnsupgrade:
                 return self.uart_mirror(rgbled)
 
             elif bootrom:
-                if verbose: print('Starting STP')
+                if verbose: print('Starting STP [BR]')
             else:
                 if verbose:
                     if load_fff:
@@ -547,7 +547,6 @@ class sqnsupgrade:
                 except Exception as ex:
                     if debug: print('Exception: {}'.format(ex))
                     pass
-
             self.__serial.read()
         elif recover and (not direct):
             if atneg:
@@ -576,7 +575,7 @@ class sqnsupgrade:
         else:
             if debug: print('Starting STP mode...')
             self.__serial.write(b"AT+STP\n")
-            response = self.read_rsp(size=2)
+            response = self.read_rsp(size=4)
             if not b'OK' in response:
                 print('Failed to start STP mode!')
                 reconnect_uart()
@@ -584,7 +583,10 @@ class sqnsupgrade:
 
         try:
             if debug:
-                if verbose: print('Starting STP code upload')
+                if verbose: print('Starting STP code upload with pkgdebug={}'.format(pkgdebug))
+            time.sleep(.1)
+            self.__serial.read()
+            time.sleep(.1)
             start = stp.start(blob, blobsize, self.__serial, baudrate, AT=False, debug=debug, pkgdebug=pkgdebug)
             if debug: print('start returned {} type {}'.format(start, type(start)))
             if start == True:
