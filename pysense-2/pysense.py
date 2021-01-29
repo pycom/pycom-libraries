@@ -23,7 +23,7 @@ from MPL3115A2 import MPL3115A2,ALTITUDE,PRESSURE
 pycom.heartbeat(False)
 pycom.rgbled(0x0A0A08) # white
 
-py = Pysense()
+py = Pycoproc()
 
 mp = MPL3115A2(py,mode=ALTITUDE) # Returns height in meters. Mode may also be set to PRESSURE, returning a value in Pascals
 print("MPL3115A2 temperature: " + str(mp.temperature()))
@@ -48,7 +48,3 @@ print("Roll: " + str(li.roll()))
 print("Pitch: " + str(li.pitch()))
 
 print("Battery voltage: " + str(py.read_battery_voltage()))
-
-time.sleep(3)
-py.setup_sleep(10)
-py.go_to_sleep()
