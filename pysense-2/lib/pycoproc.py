@@ -101,6 +101,9 @@ class Pycoproc:
 
     EXP_RTC_PERIOD = const(7000)
 
+    USB_PID_PYSENSE = const(0xf012)
+    USB_PID_PYTRACK = const(0xf013)
+
     @staticmethod
     def wake_up():
         # P9 is connected to RC1, make P9 an output
@@ -143,6 +146,14 @@ class Pycoproc:
                 # Pin("P9", mode=Pin.IN)
                 retry += 1
 
+        usb_pid=self.read_product_id()
+        if usb_pid != USB_PID_PYSENSE and usb_pid != USB_PID_PYTRACK:
+            raise ValueError('Not a Pysense2/Pytrack2 ({})'.format(hex(usb_pid)))
+        # for Pysense/Pytrack 2.0, the minimum firmware version is 15
+        fw = self.read_fw_version()
+        if fw < 16:
+            raise ValueError('Firmware out of date', fw)
+
         # init the ADC for the battery measurements
         self.write_byte(ANSELC_ADDR, 1 << 2) # RC2 analog input
         self.write_byte(ADCON0_ADDR, (_ADCON0_CHS_AN6 << _ADCON0_CHS_POSN) | _ADCON0_ADON_MASK) # select analog channel and enable ADC
@@ -160,13 +171,6 @@ class Pycoproc:
         self.sensor_power() # PWR_CTRL, RC7
         self.sd_power() # LP_CTRL, RA5
 
-        usb_pid=self.read_product_id()
-        if usb_pid != 0xf012:
-            raise ValueError('Not a Pysense2/Pytrack2 ({})'.format(usb_pid))
-        # for Pysense/Pytrack 2.0, the minimum firmware version is 15
-        fw = self.read_fw_version()
-        if fw < 15:
-            raise ValueError('Firmware out of date', fw)
 
     def _write(self, data, wait=True):
         self.i2c.writeto(I2C_SLAVE_ADDR, data)
@@ -244,6 +248,8 @@ class Pycoproc:
 
     def setup_sleep(self, time_s):
         try:
+            time.sleep_ms(30) # sleep before the calibrate, to make sure all preceeding repl communication has finished. In my tests 20ms was enough, make it 30ms to have some slack
+            # note: calibrate_rtc will interrupt the UART, means we temporarily lose REPL. the serial terminal in use may or may not succeed in reconnecting immediately/automatically, e.g. atom/pymakr
             self.calibrate_rtc()
         except Exception:
             pass
@@ -270,10 +276,6 @@ class Pycoproc:
         # RB4, RB5 analog input
         self.set_bits_in_memory(TRISB_ADDR, (1<<5) | (1<<4) )
         self.set_bits_in_memory(ANSELB_ADDR, (1<<5) | (1<<4) )
-
-        # actually only B4 and B5
-        # todo: tris=1?
-        self.write_byte(ANSELB_ADDR, 0xff)
 
         if wake_interrupt:
             # print("enable wake up PIC from RC1")
