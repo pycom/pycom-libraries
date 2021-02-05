@@ -320,8 +320,16 @@ class Pycoproc:
         time.sleep(0.5)
 
     def button_pressed(self):
-        button = self.read_bit(PORTA_ADDR, 3)
-        return not button
+        retry = 0
+        while True:
+            try:
+                button = self.read_bit(PORTA_ADDR, 3)
+                return not button
+            except Exception as e:
+                if retry > 10:
+                    raise Exception('Failed to read button state: {}'.format(e))
+                print("Failed to read button state, retry ... ({}, {})".format(retry, e))
+                retry += 1
 
     def read_battery_voltage(self):
         self.set_bits_in_memory(ADCON0_ADDR, _ADCON0_GO_nDONE_MASK)
