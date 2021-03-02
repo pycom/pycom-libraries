@@ -12,7 +12,7 @@
 
 import time
 import pycom
-from pysense import Pysense
+from pycoproc_1 import Pycoproc
 import machine
 
 from LIS2HH12 import LIS2HH12
@@ -23,7 +23,7 @@ from MPL3115A2 import MPL3115A2,ALTITUDE,PRESSURE
 pycom.heartbeat(False)
 pycom.rgbled(0x0A0A08) # white
 
-py = Pysense()
+py = Pycoproc(Pycoproc.PYSENSE)
 
 mp = MPL3115A2(py,mode=ALTITUDE) # Returns height in meters. Mode may also be set to PRESSURE, returning a value in Pascals
 print("MPL3115A2 temperature: " + str(mp.temperature()))
