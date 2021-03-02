@@ -8,7 +8,8 @@
 # available at https://www.pycom.io/opensource/licensing
 #
 
-# This script demonstrates two examples:
+# This script support Pysense 2 and Pytrack 2
+# It demonstrates two examples:
 # * go to ultra low power mode (~10uA @3.75V) with all sensors, incl accelerometer and also pycom module (Fipy, Gpy, etc) off - tap the MCLR button for this
 # * go to low power mode (~165uA @3.75V) with accelerometer on, pycom module in deepsleep and wake from accelerometer interrupt - hold the MCLR button down for this
 
