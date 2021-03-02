@@ -340,14 +340,21 @@ class Pycoproc:
         return (((adc_val * 3.3 * 280) / 1023) / 180) + 0.01    # add 10mV to compensate for the drop in the FET
 
     def gps_standby(self, enabled=True):
-        # make RC4 an output
-        self.write_bit(TRISC_ADDR, 4, 0)
         if enabled:
-            # drive RC4 low
-            self.write_bit(LATC_ADDR, 4, 0)
+            # make RC4 input
+            self.set_bits_in_memory(TRISC_ADDR, 1 << 4)
         else:
+            # make RC4 an output
+            self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 4))
             # drive RC4 high
-            self.write_bit(LATC_ADDR, 4, 1)
+            self.set_bits_in_memory(PORTC_ADDR, 1 << 4)
+            time.sleep(0.2)
+            # drive RC4 low
+            self.mask_bits_in_memory(PORTC_ADDR, ~(1 << 4))
+            time.sleep(0.2)
+            # drive RC4 high
+            self.set_bits_in_memory(PORTC_ADDR, 1 << 4)
+            time.sleep(0.2)
 
     def sensor_power(self, enabled=True):
         # make RC7 an output
