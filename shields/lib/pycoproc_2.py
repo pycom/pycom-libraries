@@ -15,7 +15,7 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 """ PIC MCU wakeup reason types """
 WAKE_REASON_ACCELEROMETER = 1
