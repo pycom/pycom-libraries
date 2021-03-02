@@ -8,7 +8,7 @@ If DECODE_CARD = True, will attempt to authenticate with CARDkey
 If authentication succeeds will attempt to read sectors from the card
 '''
 
-from pyscan import Pyscan
+from pycoproc_1 import Pycoproc
 from MFRC630 import MFRC630
 import time
 import pycom
@@ -17,7 +17,7 @@ import pycom
 CARDkey = [ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF ]
 DECODE_CARD = False
 
-py = Pyscan()
+py = Pycoproc(Pycoproc.PYSCAN)
 nfc = MFRC630(py)
 
 RGB_BRIGHTNESS = 0x8
