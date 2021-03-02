@@ -12,7 +12,7 @@
 
 import time
 import pycom
-from pysense import Pysense
+from pycoproc_2 import Pycoproc
 import machine
 
 from LIS2HH12 import LIS2HH12

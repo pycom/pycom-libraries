@@ -18,7 +18,7 @@ import time
 import pycom
 import struct
 from machine import Pin
-from pycoproc import Pycoproc
+from pycoproc_2 import Pycoproc
 import machine
 from LIS2HH12 import LIS2HH12
 
