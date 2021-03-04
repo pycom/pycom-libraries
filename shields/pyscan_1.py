@@ -10,7 +10,7 @@ GREEN if card is valid, RED if card is invalid
 
 DEBUG = False  # change to True to see debug messages
 
-from pyscan import Pyscan
+from pycoproc_1 import Pycoproc
 from MFRC630 import MFRC630
 from LIS2HH12 import LIS2HH12
 from LTR329ALS01 import LTR329ALS01
@@ -23,7 +23,7 @@ VALID_CARDS = [[0x43, 0x95, 0xDD, 0xF8],
                [0x43, 0x95, 0xDD, 0xF9],
                [0x46, 0x5A, 0xEB, 0x7D, 0x8A, 0x08, 0x04]]
 
-py = Pyscan()
+py = Pycoproc(Pycoproc.PYSCAN)
 nfc = MFRC630(py)
 lt = LTR329ALS01(py)
 li = LIS2HH12(py)

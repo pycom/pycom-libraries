@@ -19,7 +19,7 @@ import pycom
 from machine import RTC
 from machine import SD
 from L76GNSS import L76GNSS
-from pytrack import Pytrack
+from pycoproc_2 import Pycoproc
 
 pycom.heartbeat(False)
 pycom.rgbled(0x0A0A08) # white
@@ -35,7 +35,7 @@ print('\nRTC Set from NTP to UTC:', rtc.now())
 utime.timezone(7200)
 print('Adjusted from UTC to EST timezone', utime.localtime(), '\n')
 
-py = Pytrack()
+py = Pycoproc()
 
 time.sleep(1)
 l76 = L76GNSS(py, timeout=30, buffer=512)

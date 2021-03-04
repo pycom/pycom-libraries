@@ -19,7 +19,7 @@ GREEN if card is valid, RED if card is invalid
 
 DEBUG = False  # change to True to see debug messages
 
-from pyscan import Pyscan
+from pycoproc_1 import Pycoproc
 from MFRC630 import MFRC630
 from LIS2HH12 import LIS2HH12
 from LTR329ALS01 import LTR329ALS01
@@ -31,7 +31,7 @@ import _thread
 VALID_CARDS = [[0x43, 0x95, 0xDD, 0xF8],
                [0x43, 0x95, 0xDD, 0xF9]]
 
-py = Pyscan()
+py = Pycoproc(Pycoproc.PYSENSE)
 nfc = MFRC630(py)
 lt = LTR329ALS01(py)
 li = LIS2HH12(py)
@@ -57,8 +57,8 @@ def print_debug(msg):
 
 def send_sensor_data(name, timeout):
     while(pybytes):
-        pybytes.send_virtual_pin_value(True, 2, lt.light())
-        pybytes.send_virtual_pin_value(True, 3, li.acceleration())
+        pybytes.send_signal(2, lt.light())
+        pybytes.send_signal(3, li.acceleration())
         time.sleep(timeout)
 
 def discovery_loop(arg1, arg2):
@@ -78,16 +78,16 @@ def discovery_loop(arg1, arg2):
                 if (check_uid(list(uid), uid_len)) > 0:
                     print_debug('Card is listed, turn LED green')
                     pycom.rgbled(RGB_GREEN)
-                    pybytes.send_virtual_pin_value(True, 1, ('Card is listed, Access granted', uid))
+                    pybytes.send_signal(1, ('Card is listed, Access granted', uid))
                 else:
                     print_debug('Card is not listed, turn LED red')
                     pycom.rgbled(RGB_RED)
-                    pybytes.send_virtual_pin_value(True, 1, ('Card is not listed, Access denied', uid))
+                    pybytes.send_signal(1, ('Card is not listed, Access denied', uid))
         else:
             # No card detected
             print_debug('Did not detect any card...')
             pycom.rgbled(RGB_BLUE)
-            pybytes.send_virtual_pin_value(True, 1, ('Did not detect any card', 0))
+            pybytes.send_signal(1, ('Did not detect any card', 0))
         nfc.mfrc630_cmd_reset()
         time.sleep(5)
         nfc.mfrc630_cmd_init()
