@@ -3,19 +3,12 @@
 # Pycom Libraries and Examples
 
 ## Introduction
-This repository contains out of the box examples for Pycom devices, including Pysense, Pytrack, and Pyscan.
+This repository contains libraries and out of the box examples for Pycom devices, including the Shields: Pysense, Pytrack, and Pyscan.
 
 ## Table of Contents
 * [Examples](/examples)
 * [Libraries](/lib)
-* [Pysense](/pysense)
-* [Pytrack](/pytrack)
-* [Pyscan](/pyscan)
-* [Pybytes](/pybytes)
-
-## Pysense, Pytrack, Pyscan
-
-To install the required libraries for Pysense, Pytrack, and Pyscan, please download this repo as a ZIP file. You will then be able to extract and upload the library files to your Pycom device (via FTP or Pymakr Plugin). Please see [docs.pycom.io](https://docs.pycom.io) for more information.
+* [Shields](/shields)
 
 ## Links
 * [Pycom](https://pycom.io)
