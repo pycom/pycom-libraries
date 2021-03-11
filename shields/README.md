@@ -9,5 +9,5 @@ This directory contains libraries and out of the box examples for Pysense, Pytra
 2. Open Pymakr
 3. Run an example that matches to your shield
 
-Note: Note: For using Pyscan, you need to upload either MFRC630.mpy or MFRC630.py.
+Note: For using Pyscan, you need to upload either MFRC630.mpy or MFRC630.py.
 It is always recommended to use MFRC630.mpy as it takes less space on your module.
