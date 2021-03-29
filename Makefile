@@ -56,6 +56,7 @@ ifeq ($(PYBYTES),1)
 else
 	cp shields/pytrack_1.py pytrack/main.py
 endif
+	zip -r pytrack.zip pytrack
 pytrack2:
 	@echo "Making Pytrack2"
 	mkdir pytrack2
@@ -71,7 +72,7 @@ ifeq ($(PYBYTES),1)
 else
 	cp shields/pytrack_2.py pytrack2/main.py
 endif
-
+	zip -r pytrack2.zip pytrack2
 pyscan:
 	@echo "Making Pyscan"
 	mkdir pyscan
@@ -84,8 +85,12 @@ pyscan:
 	#pycoproc
 	cp shields/lib/pycoproc_1.py pyscan/lib/
 	#example
+ifeq ($(PYBYTES), 1)
+	cp shields/pyscan_1_pybytes.py pyscan/main.py
+else
 	cp shields/pyscan_1.py pyscan/main.py	
-
+endif
+	zip -r pyscan.zip pyscan
 clean:
 	@echo "Cleaning up files"
 	rm -rf pysense
