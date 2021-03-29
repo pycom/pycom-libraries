@@ -1,8 +1,10 @@
-release: clean pysense pysense2 pytrack pytrack2 pyscan
+release: pysense pysense2 pytrack pytrack2 pyscan
 PYBYTES ?= 0
 
 
 pysense:
+	rm -rf pysense
+	rm -f pysense.zip
 	@echo "Making Pysense"
 	mkdir pysense
 	mkdir pysense/lib
@@ -23,6 +25,8 @@ endif
 	zip -r pysense.zip pysense
 
 pysense2:
+	rm -rf pysense2
+	rm -f pysense2.zip
 	@echo "Making Pysense 2"
 	mkdir pysense2
 	mkdir pysense2/lib
@@ -42,6 +46,8 @@ endif
 	zip -r pysense2.zip pysense2
 
 pytrack:
+	rm -rf pytrack
+	rm -f pytrack.zip
 	@echo "Making Pytrack"
 	mkdir pytrack
 	mkdir pytrack/lib
@@ -58,6 +64,8 @@ else
 endif
 	zip -r pytrack.zip pytrack
 pytrack2:
+	rm -rf pytrack2
+	rm -f pytrack2.zip
 	@echo "Making Pytrack2"
 	mkdir pytrack2
 	mkdir pytrack2/lib
@@ -74,6 +82,8 @@ else
 endif
 	zip -r pytrack2.zip pytrack2
 pyscan:
+	rm -rf pyscan
+	rm -f pyscan.zip
 	@echo "Making Pyscan"
 	mkdir pyscan
 	mkdir pyscan/lib
