@@ -113,7 +113,7 @@ class L76GNSS:
         calc_cksum = 0
         for s in nmeadata:
             calc_cksum ^= ord(s)
-        return('{:X}'.format(calc_cksum))
+        return('{:02X}'.format(calc_cksum))
 
     def write(self, data):
         self.i2c.writeto(GPS_I2CADDR, '${}*{}\r\n'.format(data, self._checksum(data)) )
