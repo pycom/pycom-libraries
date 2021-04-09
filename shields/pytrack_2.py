@@ -40,15 +40,22 @@ py = Pycoproc()
 time.sleep(1)
 l76 = L76GNSS(py, timeout=30, buffer=512)
 
+pybytes_enabled = False
+if 'pybytes' in globals().keys():
+    if(pybytes.isconnected()):
+        pybytes_enabled = True
+
 # sd = SD()
 # os.mount(sd, '/sd')
 # f = open('/sd/gps-record.txt', 'w')
 
-# while (True):
-for _ in range(5):
+while (True):
     coord = l76.coordinates()
     #f.write("{} - {}\n".format(coord, rtc.now()))
     print("{} - {} - {}".format(coord, rtc.now(), gc.mem_free()))
+    if(pybytes_enabled):
+        pybytes.send_signal(1, coord)
+    time.sleep(10)
 
 """
 # sleep procedure

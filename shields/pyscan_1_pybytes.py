@@ -27,6 +27,9 @@ import binascii
 import time
 import pycom
 import _thread
+pybytes_enabled = False
+if 'pybytes' not in globals().keys():
+    pybytes_enabled = True;
 
 VALID_CARDS = [[0x43, 0x95, 0xDD, 0xF8],
                [0x43, 0x95, 0xDD, 0xF9]]
@@ -78,16 +81,19 @@ def discovery_loop(arg1, arg2):
                 if (check_uid(list(uid), uid_len)) > 0:
                     print_debug('Card is listed, turn LED green')
                     pycom.rgbled(RGB_GREEN)
-                    pybytes.send_signal(1, ('Card is listed, Access granted', uid))
+                    if(pybytes_enabled):
+                        pybytes.send_signal(1, ('Card is listed, Access granted', uid))
                 else:
                     print_debug('Card is not listed, turn LED red')
                     pycom.rgbled(RGB_RED)
-                    pybytes.send_signal(1, ('Card is not listed, Access denied', uid))
+                    if(pybytes_enabled):
+                        pybytes.send_signal(1, ('Card is not listed, Access denied', uid))
         else:
             # No card detected
             print_debug('Did not detect any card...')
             pycom.rgbled(RGB_BLUE)
-            pybytes.send_signal(1, ('Did not detect any card', 0))
+            if(pybytes_enabled):
+                pybytes.send_signal(1, ('Did not detect any card', 0))
         nfc.mfrc630_cmd_reset()
         time.sleep(5)
         nfc.mfrc630_cmd_init()
