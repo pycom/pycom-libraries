@@ -7,12 +7,13 @@
 
 pyscan/*
 pysense/*
-pytrack/*
 pysense2/*
+pytrack/*
 pytrack2/*
 
 pyscan.zip
 pysense.zip
+pysense2.zip
 pytrack.zip
 pytrack2.zip
-pysense2.zip
+
