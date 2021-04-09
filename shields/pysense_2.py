@@ -24,6 +24,8 @@ pycom.heartbeat(False)
 pycom.rgbled(0x0A0A08) # white
 
 py = Pycoproc()
+if py.read_product_id() != Pycoproc.USB_PID_PYSENSE:
+    raise Exception('Not a Pysense')
 
 mp = MPL3115A2(py,mode=ALTITUDE) # Returns height in meters. Mode may also be set to PRESSURE, returning a value in Pascals
 print("MPL3115A2 temperature: " + str(mp.temperature()))

@@ -152,7 +152,7 @@ class Pycoproc:
         # for Pysense/Pytrack 2.0, the minimum firmware version is 15
         fw = self.read_fw_version()
         if fw < 16:
-            raise ValueError('Firmware out of date', fw)
+            raise ValueError('Firmware for Shield2 out of date', fw)
 
         # init the ADC for the battery measurements
         self.write_byte(ANSELC_ADDR, 1 << 2) # RC2 analog input
