@@ -36,6 +36,8 @@ utime.timezone(7200)
 print('Adjusted from UTC to EST timezone', utime.localtime(), '\n')
 
 py = Pycoproc()
+if py.read_product_id() != Pycoproc.USB_PID_PYTRACK:
+    raise Exception('Not a Pytrack')
 
 time.sleep(1)
 l76 = L76GNSS(py, timeout=30, buffer=512)

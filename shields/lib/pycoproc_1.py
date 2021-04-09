@@ -127,7 +127,7 @@ class Pycoproc:
         self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
 
         if self.read_fw_version() < 6:
-            raise ValueError('Firmware out of date')
+            raise ValueError('Firmware for Shield1 out of date')
 
 
     def _write(self, data, wait=True):
