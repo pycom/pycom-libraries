@@ -28,6 +28,7 @@ py = Pycoproc(Pycoproc.PYSENSE)
 pybytes_enabled = False
 if 'pybytes' in globals().keys():
     if(pybytes.isconnected()):
+        print('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True
 
 mp = MPL3115A2(py,mode=ALTITUDE) # Returns height in meters. Mode may also be set to PRESSURE, returning a value in Pascals

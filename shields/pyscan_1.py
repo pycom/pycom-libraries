@@ -39,6 +39,7 @@ li = LIS2HH12(py)
 pybytes_enabled = False
 if 'pybytes' in globals().keys():
     if(pybytes.isconnected()):
+        print('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True
 
 RGB_BRIGHTNESS = 0x8
@@ -62,7 +63,7 @@ def print_debug(msg):
 
 def send_sensor_data(name, timeout):
     if(pybytes_enabled):
-        while(pybytes.isconnected()):
+        while(True):
             pybytes.send_signal(2, lt.light())
             pybytes.send_signal(3, li.acceleration())
             time.sleep(timeout)

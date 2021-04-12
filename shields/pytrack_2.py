@@ -43,6 +43,7 @@ l76 = L76GNSS(py, timeout=30, buffer=512)
 pybytes_enabled = False
 if 'pybytes' in globals().keys():
     if(pybytes.isconnected()):
+        print('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True
 
 # sd = SD()
