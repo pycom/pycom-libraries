@@ -5,3 +5,15 @@
 *.conf
 .DS_Store
 
+pyscan/*
+pysense/*
+pysense2/*
+pytrack/*
+pytrack2/*
+
+pyscan.zip
+pysense.zip
+pysense2.zip
+pytrack.zip
+pytrack2.zip
+

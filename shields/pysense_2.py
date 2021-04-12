@@ -27,6 +27,12 @@ py = Pycoproc()
 if py.read_product_id() != Pycoproc.USB_PID_PYSENSE:
     raise Exception('Not a Pysense')
 
+pybytes_enabled = False
+if 'pybytes' in globals():
+    if(pybytes.isconnected()):
+        print('Pybytes is connected, sending signals to Pybytes')
+        pybytes_enabled = True
+
 mp = MPL3115A2(py,mode=ALTITUDE) # Returns height in meters. Mode may also be set to PRESSURE, returning a value in Pascals
 print("MPL3115A2 temperature: " + str(mp.temperature()))
 print("Altitude: " + str(mp.altitude()))
@@ -50,3 +56,17 @@ print("Roll: " + str(li.roll()))
 print("Pitch: " + str(li.pitch()))
 
 print("Battery voltage: " + str(py.read_battery_voltage()))
+
+# set your battery voltage limits here
+vmax = 4.2
+vmin = 3.3
+battery_voltage = py.read_battery_voltage()
+battery_percentage = (battery_voltage - vmin / (vmax - vmin))*100
+print("Battery voltage: " + str(py.read_battery_voltage()), " percentage: ", battery_percentage)
+if(pybytes_enabled):
+    pybytes.send_signal(1, mpp.pressure())
+    pybytes.send_signal(2, si.temperature())
+    pybytes.send_signal(3, lt.light())
+    pybytes.send_signal(4, li.acceleration())
+    pybytes.send_battery_level(int(battery_percentage))
+    print("Sent data to pybytes")

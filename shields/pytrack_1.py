@@ -34,6 +34,12 @@ print('Adjusted from UTC to EST timezone', utime.localtime(), '\n')
 py = Pycoproc(Pycoproc.PYTRACK)
 l76 = L76GNSS(py, timeout=30)
 
+pybytes_enabled = False
+if 'pybytes' in globals():
+    if(pybytes.isconnected()):
+        print('Pybytes is connected, sending signals to Pybytes')
+        pybytes_enabled = True
+
 # sd = SD()
 # os.mount(sd, '/sd')
 # f = open('/sd/gps-record.txt', 'w')
@@ -42,3 +48,13 @@ while (True):
     coord = l76.coordinates()
     #f.write("{} - {}\n".format(coord, rtc.now()))
     print("{} - {} - {}".format(coord, rtc.now(), gc.mem_free()))
+    if(pybytes_enabled):
+        pybytes.send_signal(1, coord)
+    time.sleep(10)
+
+"""
+# sleep procedure
+time.sleep(3)
+py.setup_sleep(10)
+py.go_to_sleep()
+"""
