@@ -16,7 +16,7 @@ RGB LED is BLUE while waiting for card,
 GREEN if card is valid, RED if card is invalid
 '''
 
-DEBUG = False  # change to True to see debug messages
+DEBUG = True  # change to True to see debug messages
 
 from pycoproc_1 import Pycoproc
 from MFRC630 import MFRC630
@@ -39,7 +39,7 @@ li = LIS2HH12(py)
 pybytes_enabled = False
 if 'pybytes' in globals().keys():
     if(pybytes.isconnected()):
-        print('Pybytes is connected, sending signals to Pybytes')
+        print_debug('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True
 
 RGB_BRIGHTNESS = 0x8
@@ -68,39 +68,39 @@ def send_sensor_data(name, timeout):
             pybytes.send_signal(3, li.acceleration())
             time.sleep(timeout)
 
-def discovery_loop(arg1, arg2):
-    # Send REQA for ISO14443A card type
-    print_debug('Sending REQA for ISO14443A card type...')
-    atqa = nfc.mfrc630_iso14443a_WUPA_REQA(nfc.MFRC630_ISO14443_CMD_REQA)
-    print_debug('Response: {}'.format(atqa))
-    if (atqa != 0):
-        # A card has been detected, read UID
-        print_debug('A card has been detected, read UID...')
-        uid = bytearray(10)
-        uid_len = nfc.mfrc630_iso14443a_select(uid)
-        print_debug('UID has length: {}'.format(uid_len))
-        if (uid_len > 0):
-            print_debug('Checking if card with UID: [{:s}] is listed in VALID_CARDS...'.format(binascii.hexlify(uid[:uid_len],' ').upper()))
-            if (check_uid(list(uid), uid_len)) > 0:
-                print_debug('Card is listed, turn LED green')
-                pycom.rgbled(RGB_GREEN)
-                if(pybytes_enabled):
-                    pybytes.send_signal(1, ('Card is listed, Access granted', uid))
-            else:
-                print_debug('Card is not listed, turn LED red')
-                pycom.rgbled(RGB_RED)
-                if(pybytes_enabled):
-                    pybytes.send_signal(1, ('Card is not listed, Access denied', uid))
-    else:
-        # No card detected
-        print_debug('Did not detect any card...')
-        pycom.rgbled(RGB_BLUE)
-        if(pybytes_enabled):
-            pybytes.send_signal(1, ('Did not detect any card', 0))
-    nfc.mfrc630_cmd_reset()
-    time.sleep(.5)
-    nfc.mfrc630_cmd_init()
+def discovery_loop(nfc, id):
+    while(True):
+        # Send REQA for ISO14443A card type
+        # print_debug('Sending REQA for ISO14443A card type...')
+        atqa = nfc.mfrc630_iso14443a_WUPA_REQA(nfc.MFRC630_ISO14443_CMD_REQA)
+        # print_debug('Response: {}'.format(atqa))
+        if (atqa != 0):
+            # A card has been detected, read UID
+            print_debug('A card has been detected, read UID...')
+            uid = bytearray(10)
+            uid_len = nfc.mfrc630_iso14443a_select(uid)
+            print_debug('UID has length: {}'.format(uid_len))
+            if (uid_len > 0):
+                print_debug('Checking if card with UID: [{:s}] is listed in VALID_CARDS...'.format(binascii.hexlify(uid[:uid_len],' ').upper()))
+                if (check_uid(list(uid), uid_len)) > 0:
+                    print_debug('Card is listed, turn LED green')
+                    pycom.rgbled(RGB_GREEN)
+                    if(pybytes_enabled):
+                        pybytes.send_signal(1, ('Card is listed, Access granted', uid))
+                else:
+                    print_debug('Card is not listed, turn LED red')
+                    pycom.rgbled(RGB_RED)
+                    if(pybytes_enabled):
+                        pybytes.send_signal(1, ('Card is not listed, Access denied', uid))
+        else:
+            # No card detected
+            # print_debug('Did not detect any card...')
+            pycom.rgbled(RGB_BLUE)
+        nfc.mfrc630_cmd_reset()
+        time.sleep(.5)
+        nfc.mfrc630_cmd_init()
 
 # This is the start of our main execution... start the thread
 _thread.start_new_thread(discovery_loop, (nfc, 0))
 _thread.start_new_thread(send_sensor_data, ('Thread 2',10))
+print_debug("Scanning for cards")
