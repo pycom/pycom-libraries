@@ -35,7 +35,7 @@ py = Pycoproc(Pycoproc.PYTRACK)
 l76 = L76GNSS(py, timeout=30)
 
 pybytes_enabled = False
-if 'pybytes' in globals().keys():
+if 'pybytes' in globals():
     if(pybytes.isconnected()):
         print('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True

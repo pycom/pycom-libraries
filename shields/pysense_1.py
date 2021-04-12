@@ -26,7 +26,7 @@ pycom.rgbled(0x0A0A08) # white
 py = Pycoproc(Pycoproc.PYSENSE)
 
 pybytes_enabled = False
-if 'pybytes' in globals().keys():
+if 'pybytes' in globals():
     if(pybytes.isconnected()):
         print('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True

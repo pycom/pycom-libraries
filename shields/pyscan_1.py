@@ -31,7 +31,7 @@ lt = LTR329ALS01(py)
 li = LIS2HH12(py)
 
 pybytes_enabled = False
-if 'pybytes' in globals().keys():
+if 'pybytes' in globals():
     if(pybytes.isconnected()):
         print('Pybytes is connected, sending signals to Pybytes')
         pybytes_enabled = True
