@@ -370,7 +370,7 @@ class MFRC630:
         buffer_length = self.mfrc630_fifo_length()
         rx_len = buffer_length if (buffer_length <= 16) else 16
         dest = self.mfrc630_read_fifo(rx_len)
-        return rx_len
+        return dest
 
 
     def mfrc630_iso14443a_WUPA_REQA(self, instruction):
