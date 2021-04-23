@@ -28,6 +28,14 @@ class LTR329ALS01:
     ALS_GAIN_8X = const(0x03)
     ALS_GAIN_48X = const(0x06)
     ALS_GAIN_96X = const(0x07)
+    ALS_GAIN_VALUES = {
+        ALS_GAIN_1X: 1,
+        ALS_GAIN_2X: 2,
+        ALS_GAIN_4X: 4,
+        ALS_GAIN_8X: 8,
+        ALS_GAIN_48X: 48,
+        ALS_GAIN_96X: 96
+    }
 
     ALS_INT_50 = const(0x01)
     ALS_INT_100 = const(0x00)
@@ -37,6 +45,16 @@ class LTR329ALS01:
     ALS_INT_300 = const(0x06)
     ALS_INT_350 = const(0x07)
     ALS_INT_400 = const(0x03)
+    ALS_INT_VALUES = {
+        ALS_INT_50: 0.5,
+        ALS_INT_100: 1,
+        ALS_INT_150: 1.5,
+        ALS_INT_200: 2,
+        ALS_INT_250: 2.5,
+        ALS_INT_300: 3,
+        ALS_INT_350: 3.5,
+        ALS_INT_400: 4
+    }
 
     ALS_RATE_50 = const(0x00)
     ALS_RATE_100 = const(0x01)
@@ -50,6 +68,9 @@ class LTR329ALS01:
             self.i2c = pysense.i2c
         else:
             self.i2c = I2C(0, mode=I2C.MASTER, pins=(sda, scl))
+
+        self.gain = gain
+        self.integration = integration
 
         contr = self._getContr(gain)
         self.i2c.writeto_mem(ALS_I2CADDR, ALS_CONTR_REG, bytearray([contr]))
@@ -78,3 +99,19 @@ class LTR329ALS01:
         data0 = int(self._getWord(ch0high[0], ch0low[0]))
 
         return (data0, data1)
+
+    def lux(self):
+        # Calculate Lux value from formular in Appendix A of the datasheet
+        light_level = self.light()
+        if light_level[0]+light_level[1] > 0:
+            ratio = light_level[1]/(light_level[0]+light_level[1])
+            if ratio < 0.45:
+                return (1.7743 * light_level[0] + 1.1059 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+            elif ratio < 0.64 and ratio >= 0.45:
+                return (4.2785 * light_level[0] - 1.9548 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+            elif ratio < 0.85 and ratio >= 0.64:
+                return (0.5926 * light_level[0] + 0.1185 * light_level[1]) / self.ALS_GAIN_VALUES[self.gain] / self.ALS_INT_VALUES[self.integration]
+            else:
+                return 0
+        else:
+            return 0
