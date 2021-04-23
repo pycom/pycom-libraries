@@ -83,7 +83,7 @@ class SI7006A20:
         heater_setting = heater_value & HTR_CTRL_REG_MASK
         self.write_reg(WRITE_HEATER_CTRL_REG, heater_setting)
 
-    def heater_control(self, on_off):
+    def heater_control(self, state):
         """ turn the heater on or off """
         # Get current settings for everything else
         user_reg = self.read_user_reg()
