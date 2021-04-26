@@ -67,21 +67,30 @@ class MQTTClient:
         if self.ssl:
             import ussl
             self.sock = ussl.wrap_socket(self.sock, **self.ssl_params)
-        msg = bytearray(b"\x10\0\0\x04MQTT\x04\x02\0\0")
-        msg[1] = 10 + 2 + len(self.client_id)
-        msg[9] = clean_session << 1
+        msg = bytearray(b"\0\x04MQTT\x04\x02\0\0")
+        header_size = 10 + 2 + len(self.client_id)
+        msg[7] = clean_session << 1
         if self.user is not None:
-            msg[1] += 2 + len(self.user) + 2 + len(self.pswd)
-            msg[9] |= 0xC0
+            header_size += 2 + len(self.user) + 2 + len(self.pswd)
+            msg[7] |= 0xC0
         if self.keepalive:
             assert self.keepalive < 65536
-            msg[10] |= self.keepalive >> 8
-            msg[11] |= self.keepalive & 0x00FF
+            msg[8] |= self.keepalive >> 8
+            msg[9] |= self.keepalive & 0x00FF
         if self.lw_topic:
-            msg[1] += 2 + len(self.lw_topic) + 2 + len(self.lw_msg)
-            msg[9] |= 0x4 | (self.lw_qos & 0x1) << 3 | (self.lw_qos & 0x2) << 3
-            msg[9] |= self.lw_retain << 5
+            header_size += 2 + len(self.lw_topic) + 2 + len(self.lw_msg)
+            msg[7] |= 0x4 | (self.lw_qos & 0x1) << 3 | (self.lw_qos & 0x2) << 3
+            msg[7] |= self.lw_retain << 5
+        fixed_header = bytearray(b"\x10")
+        while header_size > 0:
+            enc_bit = header_size % 128
+            header_size = header_size // 128
+            if header_size > 0:
+                enc_bit = enc_bit | 128
+            fixed_header.append(enc_bit)
+        self.sock.write(fixed_header)
         self.sock.write(msg)
+        #print(hex(len(fixed_header)), hexlify(fixed_header, ":"))
         #print(hex(len(msg)), hexlify(msg, ":"))
         self._send_str(self.client_id)
         if self.lw_topic:
@@ -199,4 +208,5 @@ class MQTTClient:
     def check_msg(self):
         self.sock.setblocking(False)
         return self.wait_msg()
+
 
