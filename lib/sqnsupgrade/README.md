@@ -12,7 +12,7 @@ Please start with the following steps:
 1. Upgrade the Pycom Firmware Updater tool to latest version
 2. Select Firmware Type `stable` in the communication window to upgrade to latest stable version
 
-You can find the different versions of firmwares available here: <a href="http://software.pycom.io/downloads/sequans2.html"> http://software.pycom.io/downloads/sequans2.html​ </a>
+You can find the different versions of firmwares available here: <a href="http://software.pycom.io/downloads/sequans2.html"> http://software.pycom.io/downloads/sequans2.html </a>
 
 These files are password protected, to download them you should be a forum.pycom.io member and access to: 
 Announcements & News --&gt;  Announcements only for members --&gt; Firmware Files for Sequans LTE modem now are secured, or clicking <a href="https://forum.pycom.io/topic/4020/firmware-files-for-sequans-lte-modem-now-are-secured"> Here </a> 
