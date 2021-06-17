@@ -48,7 +48,7 @@ print("Humidity Ambient for " + str(t_ambient) + " deg C is " + str(si.humid_amb
 
 
 lt = LTR329ALS01(py)
-print("Light (channel Blue, channel Red): " + str(lt.light()," Lux: ", str(lt.lux()), "lx"))
+print("Light (channel Blue, channel Red): " + str(lt.light())," Lux: ", str(lt.lux()), "lx")
 
 li = LIS2HH12(py)
 print("Acceleration: " + str(li.acceleration()))
