@@ -129,6 +129,7 @@ class NanoGateway:
         self.lora_sock = None
 
         self.rtc = machine.RTC()
+        self.region = region
 
     def start(self):
         """
