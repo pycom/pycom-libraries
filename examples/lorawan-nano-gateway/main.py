@@ -24,7 +24,7 @@ if __name__ == '__main__':
         port=config.PORT,
         ntp_server=config.NTP,
         ntp_period=config.NTP_PERIOD_S,
-        regoin=config.LORA_REGION
+        region=config.LORA_REGION
         )
 
     nanogw.start()
