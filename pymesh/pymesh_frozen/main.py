@@ -1,5 +1,7 @@
-import pycom
 import time
+import ubinascii
+import pycom
+from network import LoRa
 
 try:
     from pymesh_config import PymeshConfig
@@ -28,8 +30,11 @@ def new_message_cb(rcv_ip, rcv_port, rcv_data):
 
 pycom.heartbeat(False)
 
+lora = LoRa(mode=LoRa.LORA, region= LoRa.EU868)
+lora_mac = int(str(ubinascii.hexlify(lora.mac()))[2:-1], 16)
+
 # read config file, or set default values
-pymesh_config = PymeshConfig.read_config()
+pymesh_config = PymeshConfig.read_config(lora_mac)
 
 #initialize Pymesh
 pymesh = Pymesh(pymesh_config, new_message_cb)

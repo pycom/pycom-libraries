@@ -1,5 +1,7 @@
 import time
+import ubinascii
 import pycom
+from network import LoRa
 
 # 2 = test pybytes OTA feature
 # 4 = added device_id (pybytes token) in the packets to BR
@@ -66,8 +68,11 @@ def new_br_message_cb(rcv_ip, rcv_port, rcv_data, dest_ip, dest_port):
 
 pycom.heartbeat(False)
 
+lora = LoRa(mode=LoRa.LORA, region= LoRa.EU868)
+lora_mac = int(str(ubinascii.hexlify(lora.mac()))[2:-1], 16)
+
 # read config file, or set default values
-pymesh_config = PymeshConfig.read_config()
+pymesh_config = PymeshConfig.read_config(lora_mac)
 
 #initialize Pymesh
 pymesh = Pymesh(pymesh_config, new_message_cb)
