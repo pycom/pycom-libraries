@@ -5,7 +5,6 @@ later version, with permitted additional terms. For more information
 see the Pycom Licence v1.0 document supplied with this file, or
 available at https://www.pycom.io/opensource/licensing
 '''
-import ubinascii
 import json
 
 from network import LoRa
@@ -78,10 +77,7 @@ class PymeshConfig:
             time.sleep(1)
             machine.deepsleep(1000)
 
-    def check_mac(pymesh_config):
-        lora = LoRa(mode=LoRa.LORA, region= LoRa.EU868)
-        MAC = int(str(ubinascii.hexlify(lora.mac()))[2:-1], 16)
-
+    def check_mac(pymesh_config, MAC):
         if pymesh_config.get('MAC') is None:
             # if MAC config unspecified, set it to LoRa MAC
             print_debug(3, "Set MAC in config file as " + str(MAC))
@@ -102,7 +98,7 @@ class PymeshConfig:
 
         print_debug(3, "MAC ok" + str(MAC))
 
-    def read_config():
+    def read_config(MAC):
         file = PymeshConfig.CONFIG_FILENAME
         pymesh_config = {}
         error_file = True
@@ -138,10 +134,10 @@ class PymeshConfig:
             pymesh_config['br_ena'] = PymeshConfig.BR_ENABLE
             pymesh_config['br_prio'] = PymeshConfig.BR_PRIORITY
 
-            PymeshConfig.check_mac(pymesh_config)
+            PymeshConfig.check_mac(pymesh_config, MAC)
             print_debug(3, "Default settings:" + str(pymesh_config))
             PymeshConfig.write_config(pymesh_config, True)
 
-        PymeshConfig.check_mac(pymesh_config)
+        PymeshConfig.check_mac(pymesh_config, MAC)
         print_debug(3, "Settings:" + str(pymesh_config))
         return pymesh_config
