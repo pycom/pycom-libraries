@@ -157,6 +157,7 @@ else:
     print("button was tapped")
     blink(0x100600) # orange
     print("put pycoproc to sleep and turn pycom module off for", round(sleep_time_s/60,1), "minutes")
+    time.sleep(0.1) # give uart some time to finish the print()'s
     pycoproc.setup_sleep(sleep_time_s)
     pycoproc.go_to_sleep()
 
