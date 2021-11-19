@@ -91,7 +91,7 @@ class NanoGateway:
     connecting to the Internet.
     """
 
-    def __init__(self, id, frequency, datarate, ssid, password, server, port, ntp_server='pool.ntp.org', ntp_period=3600):
+    def __init__(self, id, frequency, datarate, ssid, password, server, port, ntp_server='pool.ntp.org', ntp_period=3600, region=LoRa.EU868):
         self.id = id
         self.server = server
         self.port = port
@@ -129,6 +129,7 @@ class NanoGateway:
         self.lora_sock = None
 
         self.rtc = machine.RTC()
+        self.region = region
 
     def start(self):
         """
@@ -175,7 +176,8 @@ class NanoGateway:
             sf=self.sf,
             preamble=8,
             coding_rate=LoRa.CODING_4_5,
-            tx_iq=True
+            tx_iq=True,
+            region=self.region
         )
 
         # create a raw LoRa socket
@@ -268,7 +270,8 @@ class NanoGateway:
                 sf=self.sf,
                 preamble=8,
                 coding_rate=LoRa.CODING_4_5,
-                tx_iq=True
+                tx_iq=True,
+                region=self.region
                 )
 
     def _freq_to_float(self, frequency):
@@ -359,7 +362,8 @@ class NanoGateway:
             sf=self._dr_to_sf(datarate),
             preamble=8,
             coding_rate=LoRa.CODING_4_5,
-            tx_iq=True
+            tx_iq=True,
+            region=self.region
             )
         #while utime.ticks_cpu() < tmst:
         #    pass
@@ -381,7 +385,8 @@ class NanoGateway:
             preamble=8,
             coding_rate=LoRa.CODING_4_5,
             tx_iq=True,
-            device_class=LoRa.CLASS_C
+            device_class=LoRa.CLASS_C,
+            region=self.region
             )
 
         self.lora_sock.send(data)
