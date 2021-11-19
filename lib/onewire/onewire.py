@@ -44,9 +44,7 @@ class OneWire:
         pin(1) # half of the devices don't match CRC without this line
         i = machine.disable_irq()
         pin(0)
-        sleep_us(1)
         pin(1)
-        sleep_us(1)
         value = pin()
         enable_irq(i)
         sleep_us(40)
@@ -70,7 +68,6 @@ class OneWire:
 
         i = machine.disable_irq()
         pin(0)
-        sleep_us(1)
         pin(value)
         sleep_us(60)
         pin(1)
